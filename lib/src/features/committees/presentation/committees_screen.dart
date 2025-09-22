@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:commipay_app/src/features/committees/data/committee_model.dart';
 import 'package:commipay_app/src/features/committees/data/committee_service.dart';
+import 'package:commipay_app/src/features/committees/presentation/add_committee_sheet.dart';
+import 'package:commipay_app/src/features/installments/presentation/installments_screen.dart';
 import 'package:commipay_app/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -125,129 +127,152 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
     final Color textColor = active ? AppColors.darkTeal : Colors.teal.shade900;
     final Color dotColor = active ? Colors.green : Colors.red;
 
-    return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 16.0,
-        left: 12,
-        right: 12,
-        top: 10,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Amount label and status row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Amount label and big amount stacked vertically
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Amount:",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.darkTeal,
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                CommitteeInstallmentsPage(committeeId: committee.id),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(
+          bottom: 16.0,
+          left: 12,
+          right: 12,
+          top: 10,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Amount label and status row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Amount label and big amount stacked vertically
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Amount:",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.darkTeal,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      "₹ ${NumberFormat("#,##0").format(committee.amount)}",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                        color: Colors.blueGrey.shade900,
-                        letterSpacing: 1.0,
+                      SizedBox(height: 4),
+                      Text(
+                        "₹ ${NumberFormat("#,##0").format(committee.amount)}",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 22,
+                          color: AppColors.darkTeal,
+                          letterSpacing: 1.0,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: active ? AppColors.darkTeal : Colors.teal.shade900,
-                    width: 1.5,
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.transparent,
                 ),
-                child: Row(
-                  children: [
-                    Text(
-                      active ? "Active" : "Closed",
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: active ? AppColors.darkTeal : Colors.teal.shade900,
+                      width: 1.5,
                     ),
-                    SizedBox(width: 6),
-                    _statusDot(dotColor),
-                  ],
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.transparent,
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        active ? "Active" : "Closed",
+                        style: TextStyle(
+                          color: textColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      _statusDot(dotColor),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                'Starting Bid: ₹ ${committee.bid}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  color: Colors.blueGrey.shade800,
+            SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  'Starting Bid: ₹ ${committee.bid}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: AppColors.darkTeal,
+                  ),
                 ),
-              ),
-              Spacer(),
-              Text(
-                'Members: ${committee.members?.length ?? 0}',
-                style: TextStyle(fontSize: 15, color: Colors.blueGrey.shade700),
-              ),
-            ],
-          ),
+                Spacer(),
+                Text(
+                  'Members: ${committee.members?.length ?? 0}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.darkTeal,
+                  ),
+                ),
+              ],
+            ),
 
-          SizedBox(height: 7),
+            SizedBox(height: 7),
 
-          Row(
-            children: [
-              Text(
-                'Start: ${_formatDate(committee.startDate)}',
-                style: TextStyle(fontSize: 15, color: Colors.blueGrey.shade700),
-              ),
-              Spacer(),
-              Text(
-                'End: ${_formatDate(committee.endDate)}',
-                style: TextStyle(fontSize: 15, color: Colors.blueGrey.shade700),
-              ),
-            ],
-          ),
+            Row(
+              children: [
+                Text(
+                  'Start: ${_formatDate(committee.startDate)}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.darkTeal,
+                  ),
+                ),
+                Spacer(),
+                Text(
+                  'End: ${_formatDate(committee.endDate)}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.darkTeal,
+                  ),
+                ),
+              ],
+            ),
 
-          SizedBox(height: 7),
+            SizedBox(height: 7),
 
-          Row(
-            children: [
-              Text(
-                'Monthly Due: ${_formatDate(committee.dueDate)}',
-                style: TextStyle(fontSize: 15, color: Colors.blueGrey.shade700),
-              ),
-            ],
-          ),
+            Row(
+              children: [
+                Text(
+                  'Monthly Due Day: ${committee.monthlyDueDay}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.darkTeal,
+                  ),
+                ),
+              ],
+            ),
 
-          SizedBox(height: 14),
+            SizedBox(height: 14),
 
-          Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
-        ],
+            Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
+          ],
+        ),
       ),
     );
   }
@@ -288,7 +313,7 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.group, color: AppColors.darkTeal, size: 18),
+                  Icon(Icons.group_work, color: AppColors.darkTeal, size: 18),
                   SizedBox(width: 4),
                   Text(
                     '$_total',
@@ -398,8 +423,29 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Add committee action
+        onPressed: () async {
+          final shouldReload = await showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+            ),
+            builder: (context) => Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: AddCommitteeSheet(),
+            ),
+          );
+          if (shouldReload == true) {
+            setState(() {
+              _committees.clear();
+              _page = 1;
+              _hasMore = true;
+            });
+            _loadCommittees();
+          }
         },
         backgroundColor: AppColors.darkTeal,
         child: Icon(Icons.add),

@@ -47,4 +47,49 @@ class CommitteeService {
       rethrow;
     }
   }
+
+  Future<bool> addCommittee(Map<String, dynamic> committeeData) async {
+    final token = await TokenStorage.getToken();
+
+    try {
+      final response = await _dio.post(
+        '$baseUrl/committee',
+        data: committeeData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        _logger.w('Add committee failed: ${response.data}');
+        return false;
+      }
+    } catch (e) {
+      _logger.e('Error adding committee: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchCommitteeById(String id) async {
+    final token = await TokenStorage.getToken();
+    try {
+      final response = await _dio.get(
+        '$baseUrl/committee/$id',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Failed to fetch committee details');
+      }
+    } catch (e) {
+      _logger.e('Error during API call: $e');
+      rethrow;
+    }
+  }
 }

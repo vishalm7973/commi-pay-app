@@ -3,8 +3,8 @@ class Committee {
   final int amount;
   final int bid;
   final String startDate;
-  final String? endDate;
-  final String? dueDate;
+  final String endDate;
+  final int monthlyDueDay;
   final List<dynamic> members;
   final String createdAt;
   final String updatedAt;
@@ -15,7 +15,7 @@ class Committee {
     required this.bid,
     required this.startDate,
     required this.endDate,
-    required this.dueDate,
+    required this.monthlyDueDay,
     required this.members,
     required this.createdAt,
     required this.updatedAt,
@@ -33,8 +33,8 @@ class Committee {
                 : int.tryParse(json['bid'].toString()))
           : null,
       startDate: json['startDate'] as String,
-      endDate: json['endDate'] as String?,
-      dueDate: json['dueDate'] as String?,
+      endDate: json['endDate'] as String,
+      monthlyDueDay: json['monthlyDueDay'] as int,
       members: List<dynamic>.from(json['members']),
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,

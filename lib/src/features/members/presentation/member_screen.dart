@@ -224,11 +224,8 @@ class _MembersScreenState extends State<MembersScreen> {
                                 ? Icon(Icons.person)
                                 : null,
                           ),
-                          title: Text(member.firstName),
-                          subtitle: Text(member.lastName ?? ''),
-                          trailing: Text(
-                            '${member.countryCode} ${member.phoneNumber}',
-                          ),
+                          title: Text('${member.firstName} ${member.lastName ?? ''}'),
+                          subtitle: Text('${member.countryCode} ${member.phoneNumber}'),
                           onTap: () {
                             // Optional detail navigation
                           },
