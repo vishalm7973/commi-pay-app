@@ -20,7 +20,6 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
   bool _hasError = false;
   Map<String, dynamic>? _committeeData;
 
-  // For installments pagination and state
   List<Installment> _installments = [];
   bool _isLoadingInstallments = false;
   bool _hasMoreInstallments = true;
@@ -86,14 +85,12 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
         _installments.addAll(newInstallments);
         _total = total;
 
-        // Check if all data is loaded
         if (_installments.length >= total) {
           _hasMoreInstallments = false;
         }
         _isLoadingInstallments = false;
       });
     } catch (e) {
-      // Optional: Handle error specifically
       setState(() {
         _isLoadingInstallments = false;
       });
@@ -109,126 +106,164 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
     }
   }
 
-  Widget _buildInstallmentItem(Installment installment) {
+  Widget _buildInstallmentItem(Installment installment, int index) {
     final bool settled = installment.isSettled;
     final Color textColor = settled ? AppColors.darkTeal : Colors.teal.shade900;
     final Color dotColor = settled ? Colors.green : Colors.red;
 
+    final installmentNumber = (_currentPage - 1) * _limit + index + 1;
+
     return InkWell(
-      onTap: () {
-        // Optional: action on tap
-      },
+      onTap: () {},
       child: Padding(
-        padding: const EdgeInsets.only(
-          bottom: 16.0,
-          left: 12,
-          right: 12,
-          top: 10,
-        ),
-        child: Column(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Amount and status row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Monthly Contribution label and value stacked vertically
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Monthly Contribution:",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: AppColors.darkTeal,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        "₹${NumberFormat("#,##0").format(installment.monthlyContribution)}",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 22,
-                          color: AppColors.darkTeal,
-                          letterSpacing: 1.0,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                // Status container (Settled/Unsettled) with dot
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: settled
-                          ? AppColors.darkTeal
-                          : Colors.teal.shade900,
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.transparent,
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        settled ? "Settled" : "Unsettled",
-                        style: TextStyle(
-                          color: textColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: dotColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            // Starting Bid and Winning Bid row
-            Row(
-              children: [
-                Text(
-                  'Starting Bid: ₹${NumberFormat("#,##0").format(installment.startingBid)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: AppColors.darkTeal,
-                  ),
-                ),
-                Spacer(),
-                Text(
-                  'Winning Bid: ₹${NumberFormat("#,##0").format(installment.winningBidAmount)}',
-                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
-                ),
-              ],
-            ),
-            SizedBox(height: 7),
-            // Settlement Date row if available
-            if (installment.settlementDate != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 7),
-                child: Text(
-                  'Settlement Date: ${_formatDate(installment.settlementDate)}',
-                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
+            Container(
+              width: 30,
+              height: 30,
+              margin: const EdgeInsets.only(right: 14, top: 4),
+              decoration: BoxDecoration(
+                color: AppColors.darkTeal.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                installmentNumber.toString(),
+                style: TextStyle(
+                  color: AppColors.darkTeal,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
               ),
-            Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        // LEFT SIDE TEXT RESTRICTED
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              DateFormat('MMM yyyy').format(
+                                DateTime(installment.year, installment.month),
+                              ),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.red,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "₹ ${NumberFormat("#,##0").format(installment.monthlyContribution)}",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 22,
+                                color: const Color.fromARGB(255, 5, 8, 8),
+                                letterSpacing: 1.0,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Flexible(
+                        // RIGHT SIDE CONTAINER CONSTRAINED
+                        fit: FlexFit.loose,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: settled
+                                  ? AppColors.darkTeal
+                                  : Colors.teal.shade900,
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.transparent,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  settled ? "Settled" : "Unsettled",
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: dotColor,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Starting Bid: ₹ ${NumberFormat("#,##0").format(installment.startingBid)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: AppColors.darkTeal,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    'Winning Bid: ₹ ${NumberFormat("#,##0").format(installment.winningBidAmount)}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.darkTeal,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    'Bidder: ${installment.winningBidder.firstName} ${installment.winningBidder.lastName}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.darkTeal,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  if (installment.settlementDate != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 7),
+                      child: Text(
+                        'Settlement Date: ${_formatDate(installment.settlementDate)}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.darkTeal,
+                        ),
+                      ),
+                    ),
+                  const Divider(height: 1, thickness: 1, color: Colors.grey),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -241,7 +276,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
       final date = DateTime.parse(dateStr);
       return DateFormat('MMM dd, yyyy').format(date);
     } catch (_) {
-      return dateStr ?? '-';
+      return dateStr;
     }
   }
 
@@ -273,7 +308,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.darkTeal),
@@ -286,10 +321,10 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                     color: AppColors.darkTeal,
                     size: 18,
                   ),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Text(
                     '$_total',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.darkTeal,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -302,16 +337,15 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : _hasError
-          ? Center(child: Text('Failed to load installments'))
+          ? const Center(child: Text('Failed to load installments'))
           : _committeeData == null
-          ? Center(child: Text('No data'))
+          ? const Center(child: Text('No data'))
           : Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // Existing committee details card (unchanged)
                   Card(
                     margin: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
@@ -324,7 +358,6 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Copy the inner row and content of committee card exactly here for consistency
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -339,7 +372,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                                       color: AppColors.darkTeal,
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
                                     "₹ ${_committeeData!['amount'] ?? '-'}",
                                     style: TextStyle(
@@ -350,44 +383,48 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                                   ),
                                 ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: active
-                                        ? AppColors.darkTeal
-                                        : Colors.teal.shade900,
-                                    width: 1.5,
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 6,
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  color: Colors.transparent,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      active ? "Active" : "Closed",
-                                      style: TextStyle(
-                                        color: active
-                                            ? AppColors.darkTeal
-                                            : Colors.teal.shade900,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 15,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: active
+                                          ? AppColors.darkTeal
+                                          : Colors.teal.shade900,
+                                      width: 1.5,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.transparent,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        active ? "Active" : "Closed",
+                                        style: TextStyle(
+                                          color: active
+                                              ? AppColors.darkTeal
+                                              : Colors.teal.shade900,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
                                       ),
-                                    ),
-                                    SizedBox(width: 6),
-                                    _statusDot(
-                                      active ? Colors.green : Colors.red,
-                                    ),
-                                  ],
+                                      const SizedBox(width: 6),
+                                      _statusDot(
+                                        active ? Colors.green : Colors.red,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Row(
                             children: [
                               Text(
@@ -398,7 +435,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                                   color: AppColors.darkTeal,
                                 ),
                               ),
-                              Spacer(),
+                              const Spacer(),
                               Text(
                                 'Due Day: ${_committeeData!['monthlyDueDay'] ?? '-'}',
                                 style: TextStyle(
@@ -408,7 +445,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 7),
+                          const SizedBox(height: 7),
                           Row(
                             children: [
                               Text(
@@ -418,7 +455,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                                   color: AppColors.darkTeal,
                                 ),
                               ),
-                              Spacer(),
+                              const Spacer(),
                               Text(
                                 'End: ${_formatDate(_committeeData!['endDate'])}',
                                 style: TextStyle(
@@ -428,14 +465,14 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           ElevatedButton.icon(
                             onPressed: () => _showMembersBottomSheet(members),
-                            icon: Icon(Icons.group),
+                            icon: const Icon(Icons.group),
                             label: Text('Members ($membersCount)'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.darkTeal,
-                              minimumSize: Size(double.infinity, 46),
+                              minimumSize: const Size(double.infinity, 46),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -445,10 +482,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                       ),
                     ),
                   ),
-
-                  SizedBox(height: 20),
-
-                  // Lazy loading installments list below committee card
+                  const SizedBox(height: 20),
                   Expanded(
                     child: ListView.builder(
                       controller: _scrollController,
@@ -456,16 +490,18 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                           _installments.length + (_hasMoreInstallments ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index < _installments.length) {
-                          return _buildInstallmentItem(_installments[index]);
+                          return _buildInstallmentItem(
+                            _installments[index],
+                            index,
+                          );
                         } else {
-                          // Show loading indicator at list end when fetching more
                           if (_isLoadingInstallments) {
-                            return Padding(
-                              padding: const EdgeInsets.all(8.0),
+                            return const Padding(
+                              padding: EdgeInsets.all(8.0),
                               child: Center(child: CircularProgressIndicator()),
                             );
                           } else {
-                            return SizedBox.shrink();
+                            return const SizedBox.shrink();
                           }
                         }
                       },
@@ -487,7 +523,10 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              child: AddInstallmentSheet(committeeId: widget.committeeId),
+              child: AddInstallmentSheet(
+                committeeId: widget.committeeId,
+                members: _committeeData?['members'] ?? [],
+              ),
             ),
           );
           if (shouldReload == true) {
@@ -500,7 +539,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
           }
         },
         backgroundColor: AppColors.darkTeal,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -542,12 +581,15 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
                   'Members (${members.length})',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Expanded(
                 child: ListView.builder(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   itemCount: members.length,
                   itemBuilder: (context, index) {
                     final member = members[index];
@@ -555,7 +597,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                         '${member['firstName'] ?? ''} ${member['lastName'] ?? ''}'
                             .trim();
                     return ListTile(
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 0,
                       ),
@@ -565,8 +607,8 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                       title: Text(fullName.isNotEmpty ? fullName : 'No Name'),
                       subtitle: Text(member['phoneNumber'] ?? ''),
                       trailing: member['isActive'] == true
-                          ? Icon(Icons.check_circle, color: Colors.green)
-                          : Icon(Icons.cancel, color: Colors.red),
+                          ? const Icon(Icons.check_circle, color: Colors.green)
+                          : const Icon(Icons.cancel, color: Colors.red),
                     );
                   },
                 ),
@@ -577,12 +619,12 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.darkTeal,
-                    minimumSize: Size(double.infinity, 46),
+                    minimumSize: const Size(double.infinity, 46),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Close',
                     style: TextStyle(
                       fontSize: 14,
