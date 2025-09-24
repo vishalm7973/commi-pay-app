@@ -215,17 +215,22 @@ class _MembersScreenState extends State<MembersScreen> {
                           );
                         }
                         final member = _members[index];
+                        final fullName =
+                            '${member.firstName} ${member.lastName ?? ''}'
+                                .trim();
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundImage: member.avatarUrl != null
                                 ? NetworkImage(member.avatarUrl!)
                                 : null,
                             child: member.avatarUrl == null
-                                ? Icon(Icons.person)
+                                ? Text(fullName.isNotEmpty ? fullName[0] : '?')
                                 : null,
                           ),
-                          title: Text('${member.firstName} ${member.lastName ?? ''}'),
-                          subtitle: Text('${member.countryCode} ${member.phoneNumber}'),
+                          title: Text(fullName),
+                          subtitle: Text(
+                            '${member.countryCode} ${member.phoneNumber}',
+                          ),
                           onTap: () {
                             // Optional detail navigation
                           },

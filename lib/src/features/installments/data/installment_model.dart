@@ -51,14 +51,14 @@ class Installment {
 class WinningBidder {
   final String id;
   final String firstName;
-  final String lastName;
+  final String? lastName;
   final String countryCode;
   final String phoneNumber;
 
   WinningBidder({
     required this.id,
     required this.firstName,
-    required this.lastName,
+    this.lastName,
     required this.countryCode,
     required this.phoneNumber,
   });
@@ -67,7 +67,7 @@ class WinningBidder {
     return WinningBidder(
       id: json['id'] as String,
       firstName: json['firstName'] as String,
-      lastName: json['lastName'] as String,
+      lastName: json['lastName'] as String?,
       countryCode: json['countryCode'] as String,
       phoneNumber: json['phoneNumber'] as String,
     );

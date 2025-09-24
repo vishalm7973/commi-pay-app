@@ -21,6 +21,9 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
 
   String? _selectedBidderId;
   String? _selectedBidderName;
+  int? _selectedMonth;
+  int? _selectedYear;
+
   final TextEditingController _winningBidAmountController =
       TextEditingController();
   final TextEditingController _startingBidController = TextEditingController();
@@ -28,25 +31,58 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
   bool _isSubmitting = false;
   String? _error;
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      prefixIcon: Padding(
-        padding: EdgeInsets.only(left: 0, right: 8),
-        child: Icon(icon, size: 18, color: Colors.grey[500]),
-      ),
-      prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-      border: UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey[300]!),
-      ),
-      enabledBorder: UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey[300]!),
-      ),
-      focusedBorder: UnderlineInputBorder(
-        borderSide: BorderSide(color: AppColors.caribbeanGreen),
-      ),
-    );
+  static const List<String> _monthNamesFull = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedMonth = now.month;
+    _selectedYear = now.year;
+  }
+
+  @override
+  void dispose() {
+    _winningBidAmountController.dispose();
+    _startingBidController.dispose();
+    super.dispose();
+  }
+
+  // years: current and last 4 years (no future years)
+  List<int> get _yearOptions {
+    final now = DateTime.now();
+    final current = now.year;
+    return List<int>.generate(5, (i) => current - i);
+  }
+
+  // months allowed for a given year (if current year, months up to current month)
+  List<int> _availableMonthsForYear(int? year) {
+    final now = DateTime.now();
+    if (year == null) return List.generate(12, (i) => i + 1);
+    if (year == now.year) return List.generate(now.month, (i) => i + 1);
+    return List.generate(12, (i) => i + 1);
+  }
+
+  void _ensureValidMonthForYear() {
+    final available = _availableMonthsForYear(_selectedYear);
+    if (_selectedMonth == null && available.isNotEmpty) {
+      _selectedMonth = available.last;
+    } else if (_selectedMonth != null && !available.contains(_selectedMonth)) {
+      _selectedMonth = available.last;
+    }
   }
 
   Future<void> _pickMember() async {
@@ -72,10 +108,14 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
   }
 
   Future<void> _submit() async {
-    if (_selectedBidderId == null || !_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate() ||
+        _selectedBidderId == null ||
+        _selectedMonth == null ||
+        _selectedYear == null) {
       setState(() => _error = "All fields required.");
       return;
     }
+
     setState(() {
       _isSubmitting = true;
       _error = null;
@@ -92,6 +132,8 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
         'winningBidder': _selectedBidderId,
         'winningBidAmount': winningBidAmount,
         'startingBid': startingBid,
+        'month': _selectedMonth,
+        'year': _selectedYear,
       };
 
       final success = await InstallmentService().addInstallment(
@@ -113,132 +155,158 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
   }
 
   @override
-  void dispose() {
-    _winningBidAmountController.dispose();
-    _startingBidController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // auto-fix month if year change makes current month invalid
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final available = _availableMonthsForYear(_selectedYear);
+      if (_selectedMonth == null && available.isNotEmpty) {
+        setState(() => _selectedMonth = available.last);
+      } else if (_selectedMonth != null &&
+          !available.contains(_selectedMonth)) {
+        setState(() => _selectedMonth = available.last);
+      }
+    });
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 48,
-                  height: 6,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              Center(
-                child: Text(
-                  'Add Installment',
-                  style: TextStyle(fontSize: 28, color: AppColors.darkTeal),
-                ),
-              ),
-              const SizedBox(height: 28),
               Text(
-                'Winning Bidder',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[500],
-                ),
+                'Add Installment',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 5),
-              GestureDetector(
-                onTap: _pickMember,
-                child: Container(
-                  width: double.infinity,
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _selectedBidderName ?? 'Select winning bidder',
-                    style: TextStyle(
-                      color: _selectedBidderName == null
-                          ? Colors.grey[500]
-                          : AppColors.darkTeal,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'Winning Bid Amount',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[500],
-                ),
-              ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 16),
+
+              // Winning Bid Amount
               TextFormField(
                 controller: _winningBidAmountController,
-                decoration: _inputDecoration(
-                  'Winning Bid Amount',
-                  Icons.currency_rupee_rounded,
-                ),
-                style: TextStyle(fontSize: 16, color: AppColors.darkTeal),
                 keyboardType: TextInputType.number,
-                validator: (val) {
-                  if (val == null || val.isEmpty) return 'Required';
-                  if (int.tryParse(val) == null) return 'Enter valid number';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'Starting Bid',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[500],
+                decoration: const InputDecoration(
+                  labelText: 'Winning Bid Amount (₹)',
                 ),
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Required'
+                    : (int.tryParse(val) == null ? 'Enter valid number' : null),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 14),
+
+              // Starting Bid
               TextFormField(
                 controller: _startingBidController,
-                decoration: _inputDecoration(
-                  'Starting Bid',
-                  Icons.currency_rupee_rounded,
-                ),
-                style: TextStyle(fontSize: 16, color: AppColors.darkTeal),
                 keyboardType: TextInputType.number,
-                validator: (val) {
-                  if (val == null || val.isEmpty) return 'Required';
-                  if (int.tryParse(val) == null) return 'Enter valid number';
-                  return null;
-                },
+                decoration: const InputDecoration(
+                  labelText: 'Starting Bid (₹)',
+                ),
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Required'
+                    : (int.tryParse(val) == null ? 'Enter valid number' : null),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 14),
+
+              // Month & Year row (styled)
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(labelText: 'Month'),
+                      value: _selectedMonth,
+                      items: _availableMonthsForYear(_selectedYear)
+                          .map(
+                            (m) => DropdownMenuItem<int>(
+                              value: m,
+                              child: Text(_monthNamesFull[m - 1]),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedMonth = v),
+                      validator: (v) => v == null ? 'Select month' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(labelText: 'Year'),
+                      value: _selectedYear,
+                      items: _yearOptions
+                          .map(
+                            (y) => DropdownMenuItem<int>(
+                              value: y,
+                              child: Text(y.toString()),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          _selectedYear = v;
+                          _ensureValidMonthForYear();
+                        });
+                      },
+                      validator: (v) => v == null ? 'Select year' : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Member picker (single)
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Member',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: AppColors.vividBlue,
+                          ),
+                        ),
+                        if (_selectedBidderName != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Chip(label: Text(_selectedBidderName!)),
+                          ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: widget.members.isEmpty ? null : _pickMember,
+                    icon: Icon(Icons.person_add, color: AppColors.darkTeal),
+                    label: Text(
+                      _selectedBidderName == null ? "Select Bidder" : "Change",
+                      style: TextStyle(color: AppColors.darkTeal),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.darkTeal),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
               if (_error != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     _error!,
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),
+
+              const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
-                height: 54,
+                height: 46,
                 child: _isSubmitting
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
@@ -249,7 +317,7 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Add Installment',
                           style: TextStyle(
                             fontSize: 14,
@@ -267,6 +335,7 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
   }
 }
 
+/// Reuse your MemberPickerSheet (keeps single-select behavior)
 class MemberPickerSheet extends StatelessWidget {
   final List<dynamic> members;
   const MemberPickerSheet({Key? key, required this.members}) : super(key: key);

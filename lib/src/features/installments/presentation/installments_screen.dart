@@ -20,7 +20,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
   bool _hasError = false;
   Map<String, dynamic>? _committeeData;
 
-  List<Installment> _installments = [];
+  final List<Installment> _installments = [];
   bool _isLoadingInstallments = false;
   bool _hasMoreInstallments = true;
   int _currentPage = 1;
@@ -111,7 +111,20 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
     final Color textColor = settled ? AppColors.darkTeal : Colors.teal.shade900;
     final Color dotColor = settled ? Colors.green : Colors.red;
 
-    final installmentNumber = (_currentPage - 1) * _limit + index + 1;
+    // descending numbering (newest = _total, older decreasing)
+    int _computeDisplayNumber() {
+      if (_total > 0) {
+        final absoluteIndex = (_currentPage - 1) * _limit + index; // 0-based
+        final num = _total - absoluteIndex;
+        return num > 0 ? num : (index + 1); // fallback if math goes wrong
+      }
+      // fallback: use local loaded list length
+      final len = _installments.length;
+      final num = len - index;
+      return num > 0 ? num : (index + 1);
+    }
+
+    final displayNumber = _computeDisplayNumber();
 
     return InkWell(
       onTap: () {},
@@ -125,12 +138,13 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
               height: 30,
               margin: const EdgeInsets.only(right: 14, top: 4),
               decoration: BoxDecoration(
-                color: AppColors.darkTeal.withOpacity(0.1),
+                // replaced withAlpha for deprecated withOpacity
+                color: AppColors.darkTeal.withAlpha((0.1 * 255).round()),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: Text(
-                installmentNumber.toString(),
+                displayNumber.toString(),
                 style: TextStyle(
                   color: AppColors.darkTeal,
                   fontWeight: FontWeight.bold,
@@ -157,7 +171,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: Colors.red,
+                                color: Colors.teal,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -166,7 +180,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 22,
-                                color: const Color.fromARGB(255, 5, 8, 8),
+                                color: AppColors.darkTeal,
                                 letterSpacing: 1.0,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -185,9 +199,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                           ),
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: settled
-                                  ? AppColors.darkTeal
-                                  : Colors.teal.shade900,
+                              color: AppColors.darkTeal,
                               width: 1.5,
                             ),
                             borderRadius: BorderRadius.circular(8),
@@ -241,11 +253,26 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                     ),
                   ),
                   const SizedBox(height: 7),
-                  Text(
-                    'Bidder: ${installment.winningBidder.firstName} ${installment.winningBidder.lastName}',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.darkTeal,
+                  Align(
+                    alignment: Alignment.centerRight, // 👈 keep it on the right
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.person, // member icon
+                          size: 18,
+                          color: Colors.teal,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${installment.winningBidder?.firstName ?? ''} ${installment.winningBidder?.lastName ?? ''}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.teal,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 7),
@@ -276,7 +303,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
       final date = DateTime.parse(dateStr);
       return DateFormat('MMM dd, yyyy').format(date);
     } catch (_) {
-      return dateStr;
+      return dateStr ?? '-';
     }
   }
 
@@ -323,7 +350,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '$_total',
+                    '$_total/$membersCount',
                     style: const TextStyle(
                       color: AppColors.darkTeal,
                       fontWeight: FontWeight.bold,
@@ -486,6 +513,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                   Expanded(
                     child: ListView.builder(
                       controller: _scrollController,
+                      padding: const EdgeInsets.only(bottom: 80),
                       itemCount:
                           _installments.length + (_hasMoreInstallments ? 1 : 0),
                       itemBuilder: (context, index) {

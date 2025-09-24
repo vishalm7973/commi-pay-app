@@ -2,6 +2,7 @@ import 'package:commipay_app/src/features/committees/presentation/committees_scr
 import 'package:commipay_app/src/features/home/presentation/tabs/home_tab.dart';
 import 'package:commipay_app/src/features/home/presentation/tabs/settings_tab.dart';
 import 'package:commipay_app/src/features/members/presentation/member_screen.dart';
+import 'package:commipay_app/src/features/profile/presentation/profile_screen.dart';
 import 'package:commipay_app/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 
@@ -19,12 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _screens = [
-      HomeTab(),
-      CommitteesScreen(),
-      MembersScreen(),
-      SettingsTab(),
-    ];
+    _screens = [HomeTab(), CommitteesScreen(), MembersScreen(), ProfileScreen()];
   }
 
   void _onTabSelected(int index) {
@@ -37,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
     BottomNavigationBarItem(icon: Icon(Icons.group_work), label: 'Committee'),
     BottomNavigationBarItem(icon: Icon(Icons.group), label: 'Members'),
-    BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+    BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
   ];
 
   @override
