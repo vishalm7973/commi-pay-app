@@ -61,4 +61,27 @@ class InstallmentService {
       return false;
     }
   }
+
+  Future<Map<String, dynamic>> fetchAvailableMembers({
+    required String committeeId,
+  }) async {
+    final token = await TokenStorage.getToken();
+    try {
+      final response = await _dio.get(
+        '$baseUrl/installment/$committeeId/available-members',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (response.statusCode == 200) {
+        // API returns structure: { statusCode, message, data: [ ... ], success }
+        final data = response.data;
+        return {'data': data['data'] as List<dynamic>};
+      } else {
+        _logger.w('fetchAvailableMembers failed: ${response.data}');
+        throw Exception('Failed to load available members');
+      }
+    } catch (e) {
+      _logger.e('Error fetching available members: $e');
+      rethrow;
+    }
+  }
 }

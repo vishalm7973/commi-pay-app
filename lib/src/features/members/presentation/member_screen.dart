@@ -220,16 +220,26 @@ class _MembersScreenState extends State<MembersScreen> {
                                 .trim();
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: member.avatarUrl != null
-                                ? NetworkImage(member.avatarUrl!)
-                                : null,
-                            child: member.avatarUrl == null
-                                ? Text(fullName.isNotEmpty ? fullName[0] : '?')
-                                : null,
+                            backgroundColor: AppColors.caribbeanGreen.withAlpha(
+                              (0.12 * 255).round(),
+                            ),
+                            child: Text(
+                              fullName.isNotEmpty
+                                  ? fullName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(color: AppColors.caribbeanGreen),
+                            ),
                           ),
-                          title: Text(fullName),
+                          title: Text(
+                            fullName,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
                           subtitle: Text(
                             '${member.countryCode} ${member.phoneNumber}',
+                          ),
+                          trailing: const Icon(
+                            Icons.phone,
+                            color: Colors.green,
                           ),
                           onTap: () {
                             // Optional detail navigation

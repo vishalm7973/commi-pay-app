@@ -303,7 +303,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
       final date = DateTime.parse(dateStr);
       return DateFormat('MMM dd, yyyy').format(date);
     } catch (_) {
-      return dateStr ?? '-';
+      return dateStr;
     }
   }
 
@@ -551,10 +551,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              child: AddInstallmentSheet(
-                committeeId: widget.committeeId,
-                members: _committeeData?['members'] ?? [],
-              ),
+              child: AddInstallmentSheet(committeeId: widget.committeeId),
             ),
           );
           if (shouldReload == true) {

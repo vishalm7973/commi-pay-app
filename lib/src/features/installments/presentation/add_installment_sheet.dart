@@ -4,13 +4,8 @@ import 'package:commipay_app/utils/app_colors.dart';
 
 class AddInstallmentSheet extends StatefulWidget {
   final String committeeId;
-  final List<dynamic> members;
 
-  const AddInstallmentSheet({
-    Key? key,
-    required this.committeeId,
-    required this.members,
-  }) : super(key: key);
+  const AddInstallmentSheet({super.key, required this.committeeId});
 
   @override
   State<AddInstallmentSheet> createState() => _AddInstallmentSheetState();
@@ -30,6 +25,11 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
 
   bool _isSubmitting = false;
   String? _error;
+
+  // NEW: available members loaded on-demand when user taps Select Bidder
+  List<dynamic> _availableMembers = [];
+  bool _isLoadingMembers = false;
+  String? _membersError;
 
   static const List<String> _monthNamesFull = [
     "January",
@@ -52,6 +52,8 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
     final now = DateTime.now();
     _selectedMonth = now.month;
     _selectedYear = now.year;
+
+    // NO prefetch here — members load only when user taps the button
   }
 
   @override
@@ -61,14 +63,12 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
     super.dispose();
   }
 
-  // years: current and last 4 years (no future years)
   List<int> get _yearOptions {
     final now = DateTime.now();
     final current = now.year;
     return List<int>.generate(5, (i) => current - i);
   }
 
-  // months allowed for a given year (if current year, months up to current month)
   List<int> _availableMonthsForYear(int? year) {
     final now = DateTime.now();
     if (year == null) return List.generate(12, (i) => i + 1);
@@ -85,25 +85,62 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
     }
   }
 
+  // Called only when user taps "Select Bidder"
   Future<void> _pickMember() async {
-    final selected = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.75,
-        child: MemberPickerSheet(members: widget.members),
-      ),
-    );
+    setState(() {
+      _isLoadingMembers = true;
+      _membersError = null;
+    });
 
-    if (selected != null && selected['id'] != null) {
+    try {
+      final res = await InstallmentService().fetchAvailableMembers(
+        committeeId: widget.committeeId,
+      );
+
+      final data = res['data'] as List<dynamic>? ?? [];
+
       setState(() {
-        _selectedBidderId = selected['id'] as String;
-        _selectedBidderName = selected['name'] as String;
+        _availableMembers = data;
+        _isLoadingMembers = false;
       });
+
+      if (_availableMembers.isEmpty) {
+        // show friendly message — no modal opened
+        final msg = _membersError ?? 'No available members';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+        return;
+      }
+
+      // open picker after members arrived
+      final selected = await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        builder: (context) => SizedBox(
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: MemberPickerSheet(members: _availableMembers),
+        ),
+      );
+
+      if (selected != null && selected['id'] != null) {
+        setState(() {
+          _selectedBidderId = selected['id'] as String;
+          _selectedBidderName = selected['name'] as String;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingMembers = false;
+        _membersError = 'Failed to load members';
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_membersError!)));
     }
   }
 
@@ -181,7 +218,6 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Winning Bid Amount
               TextFormField(
                 controller: _winningBidAmountController,
                 keyboardType: TextInputType.number,
@@ -194,7 +230,6 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
               ),
               const SizedBox(height: 14),
 
-              // Starting Bid
               TextFormField(
                 controller: _startingBidController,
                 keyboardType: TextInputType.number,
@@ -207,7 +242,6 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
               ),
               const SizedBox(height: 14),
 
-              // Month & Year row (styled)
               Row(
                 children: [
                   Expanded(
@@ -252,7 +286,6 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Member picker (single)
               Row(
                 children: [
                   Expanded(
@@ -276,8 +309,14 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
                     ),
                   ),
                   OutlinedButton.icon(
-                    onPressed: widget.members.isEmpty ? null : _pickMember,
-                    icon: Icon(Icons.person_add, color: AppColors.darkTeal),
+                    onPressed: _isLoadingMembers ? null : _pickMember,
+                    icon: _isLoadingMembers
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(Icons.person_add, color: AppColors.darkTeal),
                     label: Text(
                       _selectedBidderName == null ? "Select Bidder" : "Change",
                       style: TextStyle(color: AppColors.darkTeal),
@@ -293,6 +332,21 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
               ),
 
               const SizedBox(height: 12),
+
+              if (_isLoadingMembers)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: LinearProgressIndicator(),
+                ),
+
+              if (_membersError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    _membersError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
 
               if (_error != null)
                 Padding(
@@ -338,7 +392,7 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
 /// Reuse your MemberPickerSheet (keeps single-select behavior)
 class MemberPickerSheet extends StatelessWidget {
   final List<dynamic> members;
-  const MemberPickerSheet({Key? key, required this.members}) : super(key: key);
+  const MemberPickerSheet({super.key, required this.members});
 
   @override
   Widget build(BuildContext context) {
@@ -355,33 +409,38 @@ class MemberPickerSheet extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: members.length,
-              itemBuilder: (context, index) {
-                final member = members[index];
-                final fullName =
-                    '${member['firstName'] ?? ''} ${member['lastName'] ?? ''}'
-                        .trim();
-                final id = member['id'] ?? member['_id'] ?? '';
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 0,
+            child: members.isEmpty
+                ? const Center(child: Text('No available members'))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: members.length,
+                    itemBuilder: (context, index) {
+                      final member = members[index];
+                      final fullName =
+                          '${member['firstName'] ?? ''} ${member['lastName'] ?? ''}'
+                              .trim();
+                      final id = member['id'] ?? member['_id'] ?? '';
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 0,
+                        ),
+                        leading: CircleAvatar(
+                          child: Text(fullName.isNotEmpty ? fullName[0] : '?'),
+                        ),
+                        title: Text(fullName.isNotEmpty ? fullName : 'No Name'),
+                        subtitle: Text(member['phoneNumber'] ?? ''),
+                        trailing: const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                        ),
+                        onTap: () => Navigator.pop(context, {
+                          'id': id,
+                          'name': fullName,
+                        }),
+                      );
+                    },
                   ),
-                  leading: CircleAvatar(
-                    child: Text(fullName.isNotEmpty ? fullName[0] : '?'),
-                  ),
-                  title: Text(fullName.isNotEmpty ? fullName : 'No Name'),
-                  subtitle: Text(member['phoneNumber'] ?? ''),
-                  trailing: member['isActive'] == true
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : const Icon(Icons.cancel, color: Colors.red),
-                  onTap: () =>
-                      Navigator.pop(context, {'id': id, 'name': fullName}),
-                );
-              },
-            ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),

@@ -1,6 +1,5 @@
 import 'package:commipay_app/src/features/committees/presentation/committees_screen.dart';
-import 'package:commipay_app/src/features/home/presentation/tabs/home_tab.dart';
-import 'package:commipay_app/src/features/home/presentation/tabs/settings_tab.dart';
+import 'package:commipay_app/src/features/home/presentation/dashboard_screen.dart';
 import 'package:commipay_app/src/features/members/presentation/member_screen.dart';
 import 'package:commipay_app/src/features/profile/presentation/profile_screen.dart';
 import 'package:commipay_app/utils/app_colors.dart';
@@ -20,7 +19,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _screens = [HomeTab(), CommitteesScreen(), MembersScreen(), ProfileScreen()];
+    _screens = [
+      DashboardScreen(),
+      CommitteesScreen(),
+      MembersScreen(),
+      ProfileScreen(),
+    ];
   }
 
   void _onTabSelected(int index) {

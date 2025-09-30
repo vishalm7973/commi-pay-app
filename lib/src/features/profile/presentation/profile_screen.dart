@@ -146,7 +146,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+         title: Text(
+          'Profile',
+          style: TextStyle(
+            color: AppColors.darkTeal,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: AppColors.darkTeal,
@@ -157,11 +164,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: AppColors.darkTeal,
           ),
         ],
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: AppColors.darkTeal,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -332,12 +334,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: ElevatedButton.icon(
                           onPressed: () {},
-                          icon: const Icon(Icons.edit, color: Colors.black54),
+                          icon: const Icon(Icons.edit, color: Colors.white),
                           label: const Text('Edit Profile'),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.grey.shade300),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.greenAccent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -351,7 +353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: const Icon(Icons.logout, color: Colors.white),
                           label: const Text('Logout'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.darkTeal,
+                            backgroundColor: Colors.redAccent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),

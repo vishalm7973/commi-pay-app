@@ -9,4 +9,5 @@ class AppColors {
   static const fenceGreen = Color(0xFF052224);
   static const voidColor = Color(0xFF031314);
   static const vividBlue = Color(0xFF3299FF);
+  static const lightRed = Color(0xFFE95C5C);
 }
