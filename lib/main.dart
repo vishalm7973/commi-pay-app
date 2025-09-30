@@ -3,17 +3,21 @@ import 'src/routing/app_router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:commipay_app/utils/app_colors.dart';
 
+// ✅ Global navigator key
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
   runApp(CommiPayApp());
 }
 
 class CommiPayApp extends StatelessWidget {
+  const CommiPayApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-
-
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'CommiPay',
       theme: ThemeData(
         fontFamily: 'Poppins',
@@ -44,10 +48,16 @@ class CommiPayApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor:AppColors.caribbeanGreen,
+            backgroundColor: AppColors.caribbeanGreen,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            textStyle: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins', color: AppColors.darkTeal),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+            textStyle: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins',
+              color: AppColors.darkTeal,
+            ),
             elevation: 0,
           ),
         ),

@@ -262,8 +262,8 @@ class MemberPickerDialog extends StatefulWidget {
   const MemberPickerDialog({
     required this.allMembers,
     required this.alreadySelected,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<MemberPickerDialog> createState() => _MemberPickerDialogState();
@@ -310,17 +310,19 @@ class _MemberPickerDialogState extends State<MemberPickerDialog> {
         itemBuilder: (ctx, idx) {
           final m = widget.allMembers[idx];
           final selected = _selectedIds.contains(m.id);
+          final fullName = '${m.firstName} ${m.lastName ?? ''}'.trim();
           return CheckboxListTile(
             value: selected,
             title: Text('${m.firstName} ${m.lastName ?? ""}'),
             subtitle: Text(m.phoneNumber),
             secondary: CircleAvatar(
-              backgroundImage: m.avatarUrl != null && m.avatarUrl!.isNotEmpty
-                  ? NetworkImage(m.avatarUrl!)
-                  : null,
-              child: (m.avatarUrl == null || m.avatarUrl!.isEmpty)
-                  ? Icon(Icons.person)
-                  : null,
+              backgroundColor: AppColors.caribbeanGreen.withAlpha(
+                (0.12 * 255).round(),
+              ),
+              child: Text(
+                fullName.isNotEmpty ? fullName[0] : '?',
+                style: TextStyle(color: AppColors.caribbeanGreen),
+              ),
             ),
             onChanged: (checked) {
               setState(() {

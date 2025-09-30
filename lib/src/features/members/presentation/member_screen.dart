@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:commipay_app/src/features/home/presentation/member_payments_screen.dart';
 import 'package:commipay_app/src/features/members/data/member_model.dart';
 import 'package:commipay_app/src/features/members/data/member_service.dart';
 import 'package:commipay_app/src/features/members/presentation/add_member_sheet.dart';
@@ -242,7 +243,14 @@ class _MembersScreenState extends State<MembersScreen> {
                             color: Colors.green,
                           ),
                           onTap: () {
-                            // Optional detail navigation
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MemberPaymentsScreen(
+                                  memberId: member.id,
+                                  memberName: member.displayName,
+                                ),
+                              ),
+                            );
                           },
                         );
                       },

@@ -127,8 +127,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  /// Builds the body that will be placed inside a scrollable container.
+  /// This keeps the RefreshIndicator working even when content is short.
+  Widget _buildProfileBody(BoxConstraints constraints) {
     // local helper to safely read profile fields
     String str(Map<String, dynamic> m, String key, [String fallback = '']) {
       final v = m[key];
@@ -144,9 +145,221 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return s == 'true' || s == '1';
     }
 
+    // LOADING
+    if (_loading) {
+      return SizedBox(
+        height: constraints.maxHeight,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // ERROR
+    if (_error != null) {
+      return SizedBox(
+        height: constraints.maxHeight,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Failed to load profile',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.darkTeal,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(_error!, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loadProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkTeal,
+                  ),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // NO PROFILE
+    if (_profile == null) {
+      return SizedBox(
+        height: constraints.maxHeight,
+        child: const Center(child: Text('No profile data')),
+      );
+    }
+
+    // CONTENT
+    final profile = _profile!;
+    final firstName = str(profile, 'firstName');
+    final lastName = str(profile, 'lastName');
+    final avatarUrl = str(profile, 'avatarUrl');
+    final isActive = boolVal(profile, 'isActive', true);
+    final role = str(profile, 'role', 'USER');
+    final email = str(profile, 'email', '-');
+    final countryCode = str(profile, 'countryCode', '');
+    final phoneNumber = str(profile, 'phoneNumber', '');
+    final createdAt = str(profile, 'createdAt', '');
+
+    String initial() {
+      if (firstName.trim().isNotEmpty) {
+        return firstName.trim()[0].toUpperCase();
+      }
+      if (lastName.trim().isNotEmpty) {
+        return lastName.trim()[0].toUpperCase();
+      }
+      return '?';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        // Use min so content doesn't stretch if not needed
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(18.0),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 84,
+                        height: 84,
+                        decoration: const BoxDecoration(shape: BoxShape.circle),
+                        child: avatarUrl.isNotEmpty
+                            ? CircleAvatar(
+                                radius: 42,
+                                backgroundImage: NetworkImage(avatarUrl),
+                                backgroundColor: Colors.transparent,
+                              )
+                            : CircleAvatar(
+                                radius: 42,
+                                backgroundColor: AppColors.darkTeal.withAlpha(
+                                  (0.12 * 255).round(),
+                                ),
+                                child: Text(
+                                  initial(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${firstName.isNotEmpty ? firstName : ''}${(firstName.isNotEmpty && lastName.isNotEmpty) ? ' ' : ''}${lastName.isNotEmpty ? lastName : ''}',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.darkTeal,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? AppColors.caribbeanGreen.withAlpha(30)
+                                    : Colors.red.withAlpha(30),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                role.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Divider(color: Colors.grey[200]),
+                  const SizedBox(height: 8),
+                  _infoTile(Icons.email, 'Email', email),
+                  _infoTile(
+                    Icons.phone,
+                    'Phone',
+                    '${countryCode.isNotEmpty ? '$countryCode ' : ''}$phoneNumber',
+                  ),
+                  _infoTile(
+                    Icons.calendar_today,
+                    'Joined',
+                    createdAt.isNotEmpty ? _formatDate(createdAt) : '-',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.edit, color: Colors.white),
+                  label: const Text('Edit Profile'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.greenAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _logout,
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text('Logout'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Add a little extra space at the bottom so pull-to-refresh is easy
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-         title: Text(
+        title: Text(
           'Profile',
           style: TextStyle(
             color: AppColors.darkTeal,
@@ -157,214 +370,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: AppColors.darkTeal,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadProfile,
-            color: AppColors.darkTeal,
-          ),
-        ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Failed to load profile',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkTeal,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(_error!, textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: _loadProfile,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.darkTeal,
-                      ),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+      body: RefreshIndicator(
+        onRefresh: _loadProfile,
+        // Always provide a scrollable child so pull-to-refresh works in all states
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(child: _buildProfileBody(constraints)),
               ),
-            )
-          : _profile == null
-          ? const Center(child: Text('No profile data'))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18.0),
-                      child: Builder(
-                        builder: (context) {
-                          // Promote local non-nullable profile map
-                          final profile = _profile!;
-                          final firstName = str(profile, 'firstName');
-                          final lastName = str(profile, 'lastName');
-                          final avatarUrl = str(profile, 'avatarUrl');
-                          final isActive = boolVal(profile, 'isActive', true);
-                          final role = str(profile, 'role', 'USER');
-                          final email = str(profile, 'email', '-');
-                          final countryCode = str(profile, 'countryCode', '');
-                          final phoneNumber = str(profile, 'phoneNumber', '');
-                          final createdAt = str(profile, 'createdAt', '');
-
-                          // compute initial
-                          String initial() {
-                            if (firstName.trim().isNotEmpty)
-                              return firstName.trim()[0].toUpperCase();
-                            if (lastName.trim().isNotEmpty)
-                              return lastName.trim()[0].toUpperCase();
-                            return '?';
-                          }
-
-                          return Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 84,
-                                    height: 84,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: avatarUrl.isNotEmpty
-                                        ? CircleAvatar(
-                                            radius: 42,
-                                            backgroundImage: NetworkImage(
-                                              avatarUrl,
-                                            ),
-                                            backgroundColor: Colors.transparent,
-                                          )
-                                        : CircleAvatar(
-                                            radius: 42,
-                                            backgroundColor: AppColors.darkTeal
-                                                .withAlpha(
-                                                  (0.12 * 255).round(),
-                                                ),
-                                            child: Text(
-                                              initial(),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 28,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '${firstName.isNotEmpty ? firstName : ''}${(firstName.isNotEmpty && lastName.isNotEmpty) ? ' ' : ''}${lastName.isNotEmpty ? lastName : ''}',
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.darkTeal,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: isActive
-                                                ? AppColors.caribbeanGreen
-                                                      .withAlpha(30)
-                                                : Colors.red.withAlpha(30),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            role.toUpperCase(),
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Divider(color: Colors.grey[200]),
-                              const SizedBox(height: 8),
-                              _infoTile(Icons.email, 'Email', email),
-                              _infoTile(
-                                Icons.phone,
-                                'Phone',
-                                '${countryCode.isNotEmpty ? countryCode + ' ' : ''}$phoneNumber',
-                              ),
-                              _infoTile(
-                                Icons.calendar_today,
-                                'Joined',
-                                createdAt.isNotEmpty
-                                    ? _formatDate(createdAt)
-                                    : '-',
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.edit, color: Colors.white),
-                          label: const Text('Edit Profile'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.greenAccent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _logout,
-                          icon: const Icon(Icons.logout, color: Colors.white),
-                          label: const Text('Logout'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

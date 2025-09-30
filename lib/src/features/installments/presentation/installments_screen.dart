@@ -175,16 +175,29 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              "₹ ${NumberFormat("#,##0").format(installment.monthlyContribution)}",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 22,
-                                color: AppColors.darkTeal,
-                                letterSpacing: 1.0,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.currency_rupee,
+                                  size: 22,
+                                  color: AppColors.darkTeal,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  NumberFormat(
+                                    "#,##0",
+                                  ).format(installment.monthlyContribution),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 22,
+                                    color: AppColors.darkTeal,
+                                    letterSpacing: 1.0,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -236,21 +249,61 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'Starting Bid: ₹ ${NumberFormat("#,##0").format(installment.startingBid)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: AppColors.darkTeal,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Starting Bid:',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: AppColors.darkTeal,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.currency_rupee,
+                        size: 16,
+                        color: AppColors.darkTeal,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        NumberFormat("#,##0").format(installment.startingBid),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: AppColors.darkTeal,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 7),
-                  Text(
-                    'Winning Bid: ₹ ${NumberFormat("#,##0").format(installment.winningBidAmount)}',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.darkTeal,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Winning Bid:',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.darkTeal,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.currency_rupee,
+                        size: 16,
+                        color: AppColors.darkTeal,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        NumberFormat(
+                          "#,##0",
+                        ).format(installment.winningBidAmount),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.darkTeal,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 7),
                   Align(
@@ -400,13 +453,24 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    "₹ ${_committeeData!['amount'] ?? '-'}",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 22,
-                                      color: AppColors.darkTeal,
-                                    ),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.currency_rupee,
+                                        size: 25,
+                                        fontWeight: FontWeight.w900,
+                                        color: AppColors.darkTeal,
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        "${_committeeData!['amount'] ?? '-'}",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 22,
+                                          color: AppColors.darkTeal,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -455,7 +519,23 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                           Row(
                             children: [
                               Text(
-                                'Starting Bid: ₹${_committeeData!['bid'] ?? '-'}',
+                                'Starting Bid:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: AppColors.darkTeal,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              const Icon(
+                                Icons.currency_rupee,
+                                size: 16,
+                                color: AppColors.darkTeal,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                '${_committeeData!['bid'] ?? '-'}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 15,
@@ -627,7 +707,13 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
                         vertical: 0,
                       ),
                       leading: CircleAvatar(
-                        child: Text(fullName.isNotEmpty ? fullName[0] : '?'),
+                        backgroundColor: AppColors.caribbeanGreen.withAlpha(
+                          (0.12 * 255).round(),
+                        ),
+                        child: Text(
+                          fullName.isNotEmpty ? fullName[0] : '?',
+                          style: TextStyle(color: AppColors.caribbeanGreen),
+                        ),
                       ),
                       title: Text(fullName.isNotEmpty ? fullName : 'No Name'),
                       subtitle: Text(member['phoneNumber'] ?? ''),

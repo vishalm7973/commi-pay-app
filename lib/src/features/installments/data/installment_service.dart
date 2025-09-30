@@ -84,4 +84,36 @@ class InstallmentService {
       rethrow;
     }
   }
+
+  Future<bool> markInstallmentPaid({
+    required String installmentId,
+    required String memberId,
+    bool isPaid = true,
+  }) async {
+    final token = await TokenStorage.getToken();
+    try {
+      final response = await _dio.patch(
+        '$baseUrl/installment/$installmentId/payment/$memberId',
+        data: {'isPaid': isPaid},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && (response.data['success'] == true)) {
+        return true;
+      } else {
+        _logger.w(
+          'Mark installment paid failed: ${response.statusCode} ${response.data}',
+        );
+        throw Exception('Failed to mark installment paid');
+      }
+    } catch (e) {
+      _logger.e('Error marking installment paid: $e');
+      rethrow;
+    }
+  }
 }

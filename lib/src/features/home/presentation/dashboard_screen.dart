@@ -1,6 +1,7 @@
 import 'package:commipay_app/src/features/home/data/analytics_stats_model.dart';
 import 'package:commipay_app/src/features/home/data/home_service.dart';
 import 'package:commipay_app/src/features/home/data/pending_member_model.dart';
+import 'package:commipay_app/src/features/home/presentation/member_payments_screen.dart';
 import 'package:commipay_app/src/features/home/presentation/unpaid_members_page.dart';
 import 'package:flutter/material.dart';
 import 'package:commipay_app/utils/app_colors.dart';
@@ -182,6 +183,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
 
         const SizedBox(height: 18),
+        Divider(color: Colors.grey.shade300, thickness: 1),
 
         // Unpaid members heading with See All
         Row(
@@ -198,7 +200,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             InkWell(
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const UnpaidMembersScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const UnpaidMembersScreen(),
+                  ),
                 );
               },
               child: Padding(
@@ -277,29 +281,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text('${m.countryCode} ${m.phoneNumber}'),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '₹ ${m.totalPendingAmount} /-',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                            color: AppColors.lightRed,
+                    trailing: SizedBox(
+                      width: 120, // tune this to fit your content
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize
+                                .min, // important so Row doesn't expand
+                            children: [
+                              const Icon(
+                                Icons.currency_rupee,
+                                size: 16,
+                                color: AppColors.lightRed,
+                              ),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                // ensures long numbers don't overflow
+                                child: Text(
+                                  '${m.totalPendingAmount} /-',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: AppColors.lightRed,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${m.pendingCount} pending',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                          const SizedBox(height: 4),
+                          Text(
+                            '${m.pendingCount} pending',
+                            textAlign: TextAlign.right,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    onTap: () {},
+
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => MemberPaymentsScreen(
+                            memberId: m.id,
+                            memberName: m.displayName,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               );

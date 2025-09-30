@@ -165,15 +165,26 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
                         ),
                       ),
                       SizedBox(height: 4),
-                      Text(
-                        "₹ ${NumberFormat("#,##0").format(committee.amount)}",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 22,
-                          color: AppColors.darkTeal,
-                          letterSpacing: 1.0,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.currency_rupee,
+                            size: 25,
+                            color: AppColors.darkTeal,
+                            fontWeight: FontWeight.w900,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            NumberFormat("#,##0").format(committee.amount),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              color: AppColors.darkTeal,
+                              letterSpacing: 1.0,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -213,21 +224,39 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
             SizedBox(height: 12),
             Row(
               children: [
-                Text(
-                  'Starting Bid: ₹ ${committee.bid}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: AppColors.darkTeal,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Starting Bid:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: AppColors.darkTeal,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(
+                      Icons.currency_rupee,
+                      size: 16,
+                      color: AppColors.darkTeal,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${committee.bid}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: AppColors.darkTeal,
+                      ),
+                    ),
+                  ],
                 ),
+
                 Spacer(),
                 Text(
                   'Members: ${committee.members?.length ?? 0}',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: AppColors.darkTeal,
-                  ),
+                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
                 ),
               ],
             ),
@@ -238,18 +267,12 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
               children: [
                 Text(
                   'Start: ${_formatDate(committee.startDate)}',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: AppColors.darkTeal,
-                  ),
+                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
                 ),
                 Spacer(),
                 Text(
                   'End: ${_formatDate(committee.endDate)}',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: AppColors.darkTeal,
-                  ),
+                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
                 ),
               ],
             ),
@@ -260,10 +283,7 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
               children: [
                 Text(
                   'Monthly Due Day: ${committee.monthlyDueDay}',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: AppColors.darkTeal,
-                  ),
+                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
                 ),
               ],
             ),

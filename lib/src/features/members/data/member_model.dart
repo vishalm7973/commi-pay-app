@@ -25,6 +25,9 @@ class Member {
     required this.updatedAt,
   });
 
+  String get displayName =>
+      (firstName + (lastName != null ? ' $lastName' : '')).trim();
+
   factory Member.fromJson(Map<String, dynamic> json) {
     return Member(
       id: json['id'] as String,

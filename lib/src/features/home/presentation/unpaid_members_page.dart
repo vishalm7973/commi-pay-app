@@ -83,7 +83,7 @@ class _UnpaidMembersScreenState extends State<UnpaidMembersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Unpaid Memebers',
+          'Unpaid Members',
           style: TextStyle(
             color: AppColors.darkTeal,
             fontWeight: FontWeight.w600,
@@ -198,27 +198,48 @@ class _UnpaidMembersScreenState extends State<UnpaidMembersScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                       subtitle: Text('${m.countryCode} ${m.phoneNumber}'),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '₹ ${m.totalPendingAmount} /-',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                              color: AppColors.lightRed,
+                      trailing: SizedBox(
+                        width: 120, // tune this to fit your content
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize
+                                  .min, // important so Row doesn't expand
+                              children: [
+                                const Icon(
+                                  Icons.currency_rupee,
+                                  size: 16,
+                                  color: AppColors.lightRed,
+                                ),
+                                const SizedBox(width: 2),
+                                Flexible(
+                                  // ensures long numbers don't overflow
+                                  child: Text(
+                                    '${m.totalPendingAmount} /-',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                      color: AppColors.lightRed,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${m.pendingCount} pending',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+                            const SizedBox(height: 4),
+                            Text(
+                              '${m.pendingCount} pending',
+                              textAlign: TextAlign.right,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       onTap: () {
                         Navigator.of(context).push(

@@ -1,13 +1,14 @@
 import 'package:commipay_app/src/features/home/data/analytics_stats_model.dart';
 import 'package:commipay_app/src/features/home/data/pending_member_model.dart';
 import 'package:commipay_app/src/features/home/data/pending_payment_records_model.dart';
+import 'package:commipay_app/utils/app_client.dart';
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import 'package:commipay_app/utils/token_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class HomeService {
-  final Dio _dio = Dio();
+  final Dio _dio = ApiClient.dio;
   final Logger _logger = Logger();
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 

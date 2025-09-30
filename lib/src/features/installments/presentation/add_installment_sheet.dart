@@ -179,6 +179,7 @@ class _AddInstallmentSheetState extends State<AddInstallmentSheet> {
 
       setState(() => _isSubmitting = false);
       if (success) {
+        // ignore: use_build_context_synchronously
         Navigator.pop(context, true);
       } else {
         setState(() => _error = "Failed to add installment. Try again.");
@@ -426,7 +427,13 @@ class MemberPickerSheet extends StatelessWidget {
                           vertical: 0,
                         ),
                         leading: CircleAvatar(
-                          child: Text(fullName.isNotEmpty ? fullName[0] : '?'),
+                          backgroundColor: AppColors.caribbeanGreen.withAlpha(
+                            (0.12 * 255).round(),
+                          ),
+                          child: Text(
+                            fullName.isNotEmpty ? fullName[0] : '?',
+                            style: TextStyle(color: AppColors.caribbeanGreen),
+                          ),
                         ),
                         title: Text(fullName.isNotEmpty ? fullName : 'No Name'),
                         subtitle: Text(member['phoneNumber'] ?? ''),
