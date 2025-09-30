@@ -1,4 +1,5 @@
 import 'package:commipay_app/src/features/installments/data/installment_service.dart';
+import 'package:commipay_app/src/features/share/share_installments.dart';
 import 'package:flutter/material.dart';
 import 'package:commipay_app/src/features/home/data/pending_payment_records_model.dart';
 import 'package:commipay_app/src/features/home/data/home_service.dart';
@@ -24,11 +25,10 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
 
   bool _loading = true;
   int _totalPendingCount = 0;
-  int _totalPendingAmount = 0; // NEW: total pending amount across groups
+  int _totalPendingAmount = 0;
   String? _error;
   List<PaymentGroup> _groups = [];
 
-  // Local state for processing and paid
   List<bool> _isProcessing = [];
   List<bool> _isPaid = [];
 
@@ -50,7 +50,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
       try {
         totalPending = resp.totalPendingAmount;
       } catch (_) {
-        // fallback: sum groups
         totalPending = resp.groups.fold<int>(
           0,
           (sum, g) => sum + (g.totalPendingAmount),
@@ -63,7 +62,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
         _totalPendingAmount = totalPending;
         _loading = false;
 
-        // Initialize local state arrays
         _isProcessing = List<bool>.filled(_groups.length, false);
         _isPaid = List<bool>.filled(_groups.length, false);
       });
@@ -76,7 +74,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
   }
 
   Future<void> _markPaid(int index) async {
-    // Prevent double click
     if (_isProcessing[index] || _isPaid[index]) return;
 
     setState(() => _isProcessing[index] = true);
@@ -92,21 +89,17 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
       if (!mounted) return;
 
       if (success) {
-        // Update local states and totals
         setState(() {
           _isProcessing[index] = false;
           _isPaid[index] = true;
-          // subtract group's pending amount from total
+
           final removed = g.totalPendingAmount;
           g.totalPendingAmount = 0;
           _totalPendingAmount = (_totalPendingAmount - removed).clamp(
             0,
             1 << 60,
           );
-          _totalPendingCount = (_totalPendingCount - (g.count)).clamp(
-            0,
-            1 << 60,
-          );
+          _totalPendingCount = (_totalPendingCount - g.count).clamp(0, 1 << 60);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -171,7 +164,7 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
           const SizedBox(width: 12),
           IconButton(
             icon: const Icon(Icons.share, color: Colors.teal),
-            onPressed: () {},
+            onPressed: () => ShareInstallments.share(context, _groups),
           ),
           const SizedBox(width: 12),
         ],
@@ -207,34 +200,44 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
                   ),
                 ],
               )
-            : _groups.isEmpty
-            ? ListView(
-                padding: const EdgeInsets.all(16),
+            : Column(
                 children: [
-                  // header with totals even when list empty
-                  _buildTotalsHeader(),
-                  const SizedBox(height: 12),
-                  const SizedBox(height: 80),
-                  Center(
-                    child: Text(
-                      'No pending payments',
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
+                  // Fixed Overview Section
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildTotalsHeader(),
+                  ),
+
+                  // Scrollable List of payments
+                  Expanded(
+                    child: _groups.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No pending payments',
+                              style: TextStyle(color: Colors.grey[700]),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount:
+                                _groups.length + 1, // extra space at bottom
+                            itemBuilder: (context, index) {
+                              if (index == _groups.length) {
+                                return const SizedBox(
+                                  height: 80,
+                                ); // bottom spacing
+                              }
+                              final g = _groups[index];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                ),
+                                child: _buildGroupCard(context, g, index),
+                              );
+                            },
+                          ),
                   ),
                 ],
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: _groups.length + 1, // +1 for header row (totals)
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, idx) {
-                  if (idx == 0) {
-                    return _buildTotalsHeader();
-                  }
-
-                  final g = _groups[idx - 1];
-                  return _buildGroupCard(context, g, idx - 1);
-                },
               ),
       ),
     );
@@ -279,7 +282,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
         ),
         const SizedBox(height: 18),
         Divider(color: Colors.grey.shade300, thickness: 1),
-
         const SizedBox(height: 18),
         Text(
           'Installments',
@@ -380,9 +382,7 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
                 ),
               ],
             ),
-
             const Divider(height: 18),
-
             // Installment info
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,9 +431,7 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
             // Pay button
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -442,7 +440,7 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
                   onPressed:
                       _isPaid[groupIndex] ||
                           _isProcessing[groupIndex] ||
-                          (pending) <= 0
+                          pending <= 0
                       ? null
                       : () => _markPaid(groupIndex),
                   style: ElevatedButton.styleFrom(
@@ -480,7 +478,7 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
   }
 }
 
-/// small stat card used in header row
+/// Small stat card used in header row
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
@@ -510,7 +508,6 @@ class _StatCard extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.max,
             children: [
-              // Small icon container
               Container(
                 width: 44,
                 height: 44,
@@ -521,7 +518,6 @@ class _StatCard extends StatelessWidget {
                 child: Center(child: Icon(icon, color: color, size: 20)),
               ),
               const SizedBox(width: 10),
-              // Title and value
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

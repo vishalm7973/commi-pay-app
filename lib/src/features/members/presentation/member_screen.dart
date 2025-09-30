@@ -6,6 +6,7 @@ import 'package:commipay_app/src/features/members/data/member_service.dart';
 import 'package:commipay_app/src/features/members/presentation/add_member_sheet.dart';
 import 'package:commipay_app/utils/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MembersScreen extends StatefulWidget {
   const MembersScreen({super.key});
@@ -238,9 +239,24 @@ class _MembersScreenState extends State<MembersScreen> {
                           subtitle: Text(
                             '${member.countryCode} ${member.phoneNumber}',
                           ),
-                          trailing: const Icon(
-                            Icons.phone,
-                            color: Colors.green,
+                          trailing: IconButton(
+                            icon: Icon(Icons.phone, color: Colors.green),
+                            onPressed: () async {
+                              final uri = Uri(
+                                scheme: 'tel',
+                                path: member.phoneNumber,
+                              );
+
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Cannot launch phone dialer'),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                           onTap: () {
                             Navigator.of(context).push(

@@ -138,7 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(
           'Overview',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
             color: AppColors.darkTeal,
           ),
@@ -192,7 +192,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text(
               'Unpaid Members',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: AppColors.darkTeal,
               ),

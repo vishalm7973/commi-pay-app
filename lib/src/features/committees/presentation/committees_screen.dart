@@ -107,9 +107,9 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
   }
 
   bool _isActive(Committee c) {
-    if (c.endDate == null || c.endDate!.isEmpty) return true;
+    if (c.endDate.isEmpty) return true;
     try {
-      final endDate = DateTime.parse(c.endDate!);
+      final endDate = DateTime.parse(c.endDate);
       return endDate.isAfter(DateTime.now());
     } catch (_) {
       return true;
@@ -122,10 +122,12 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
   );
 
-  Widget _buildCommitteeItem(Committee committee) {
+  Widget _buildCommitteeItem(Committee committee, int index) {
     final bool active = _isActive(committee);
     final Color textColor = active ? AppColors.darkTeal : Colors.teal.shade900;
     final Color dotColor = active ? Colors.green : Colors.red;
+
+    final displayNumber = index + 1; // increasing serial number
 
     return InkWell(
       onTap: () {
@@ -144,153 +146,187 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
           right: 12,
           top: 10,
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Amount label and status row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Amount label and big amount stacked vertically
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Serial Number Circle
+            Container(
+              width: 30,
+              height: 30,
+              margin: const EdgeInsets.only(right: 14, top: 4),
+              decoration: BoxDecoration(
+                color: AppColors.darkTeal.withAlpha((0.1 * 255).round()),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                displayNumber.toString(),
+                style: TextStyle(
+                  color: AppColors.darkTeal,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            // Committee info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Amount label and status row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Amount:",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: AppColors.darkTeal,
+                      // Amount label and big amount stacked vertically
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Amount:",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: AppColors.darkTeal,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.currency_rupee,
+                                  size: 25,
+                                  color: AppColors.darkTeal,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  NumberFormat(
+                                    "#,##0",
+                                  ).format(committee.amount),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 22,
+                                    color: AppColors.darkTeal,
+                                    letterSpacing: 1.0,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: active
+                                ? AppColors.darkTeal
+                                : Colors.teal.shade900,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.transparent,
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              active ? "Active" : "Closed",
+                              style: TextStyle(
+                                color: textColor,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
+                            SizedBox(width: 6),
+                            _statusDot(dotColor),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
                       Row(
                         children: [
+                          Text(
+                            'Starting Bid:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              color: AppColors.darkTeal,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
                           const Icon(
                             Icons.currency_rupee,
-                            size: 25,
+                            size: 16,
                             color: AppColors.darkTeal,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w600,
                           ),
                           const SizedBox(width: 2),
                           Text(
-                            NumberFormat("#,##0").format(committee.amount),
+                            '${committee.bid}',
                             style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
                               color: AppColors.darkTeal,
-                              letterSpacing: 1.0,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: active ? AppColors.darkTeal : Colors.teal.shade900,
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.transparent,
-                  ),
-                  child: Row(
-                    children: [
+                      Spacer(),
                       Text(
-                        active ? "Active" : "Closed",
+                        'Members: ${committee.members.length}',
                         style: TextStyle(
-                          color: textColor,
-                          fontWeight: FontWeight.w700,
                           fontSize: 15,
+                          color: AppColors.darkTeal,
                         ),
                       ),
-                      SizedBox(width: 6),
-                      _statusDot(dotColor),
                     ],
                   ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Starting Bid:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: AppColors.darkTeal,
+                  SizedBox(height: 7),
+                  Row(
+                    children: [
+                      Text(
+                        'Start: ${_formatDate(committee.startDate)}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: AppColors.darkTeal,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(
-                      Icons.currency_rupee,
-                      size: 16,
-                      color: AppColors.darkTeal,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${committee.bid}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: AppColors.darkTeal,
+                      Spacer(),
+                      Text(
+                        'End: ${_formatDate(committee.endDate)}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: AppColors.darkTeal,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-
-                Spacer(),
-                Text(
-                  'Members: ${committee.members?.length ?? 0}',
-                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
-                ),
-              ],
+                    ],
+                  ),
+                  SizedBox(height: 7),
+                  Row(
+                    children: [
+                      Text(
+                        'Monthly Due Day: ${committee.monthlyDueDay}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: AppColors.darkTeal,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 14),
+                  Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
+                ],
+              ),
             ),
-
-            SizedBox(height: 7),
-
-            Row(
-              children: [
-                Text(
-                  'Start: ${_formatDate(committee.startDate)}',
-                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
-                ),
-                Spacer(),
-                Text(
-                  'End: ${_formatDate(committee.endDate)}',
-                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 7),
-
-            Row(
-              children: [
-                Text(
-                  'Monthly Due Day: ${committee.monthlyDueDay}',
-                  style: TextStyle(fontSize: 15, color: AppColors.darkTeal),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 14),
-
-            Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
           ],
         ),
       ),
@@ -425,7 +461,10 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
                   ? Center(child: CircularProgressIndicator())
                   : ListView.builder(
                       controller: _scrollController,
-                      padding: EdgeInsets.only(bottom: 80),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 8,
+                      ).copyWith(bottom: 80), // horizontal padding added
                       itemCount: _committees.length + (_hasMore ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index >= _committees.length) {
@@ -435,7 +474,7 @@ class _CommitteesScreenState extends State<CommitteesScreen> {
                           );
                         }
                         final committee = _committees[index];
-                        return _buildCommitteeItem(committee);
+                        return _buildCommitteeItem(committee, index);
                       },
                     ),
             ),
