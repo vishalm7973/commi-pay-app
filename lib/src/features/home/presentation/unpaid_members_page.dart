@@ -19,14 +19,17 @@ class _UnpaidMembersScreenState extends State<UnpaidMembersScreen> {
   int _page = 1;
   final int _limit = 20;
   int _total = 0;
-  bool _loading = false;
+
+  bool _initialLoading = true; // First-time loading
+  bool _loading = false; // Pagination loading
+  bool _isRefreshing = false; // Pull-to-refresh flag
   bool _hasMore = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadPage();
+    _loadPage(initial: true);
     _sc.addListener(_onScroll);
   }
 
@@ -38,48 +41,75 @@ class _UnpaidMembersScreenState extends State<UnpaidMembersScreen> {
   }
 
   void _onScroll() {
-    if (!_sc.hasClients || _loading || !_hasMore) return;
-    final threshold = 200.0;
+    if (!_sc.hasClients || _loading || !_hasMore || _isRefreshing) return;
+    const threshold = 200.0;
     if (_sc.position.pixels + threshold >= _sc.position.maxScrollExtent) {
       _loadPage();
     }
   }
 
-  Future<void> _loadPage() async {
-    setState(() => _loading = true);
+  Future<void> _loadPage({bool initial = false}) async {
+    if (initial) {
+      setState(() {
+        _initialLoading = true;
+        _error = null;
+      });
+    } else {
+      setState(() => _loading = true);
+    }
+
     try {
       final resp = await _service.fetchPendingMembers(
         page: _page,
         limit: _limit,
       );
+      if (!mounted) return;
+
       setState(() {
-        _items.addAll(resp.data);
+        if (_page == 1) {
+          // On first page or refresh, replace items
+          _items = resp.data;
+        } else {
+          // For pagination, append
+          _items.addAll(resp.data);
+        }
         _total = resp.total;
         _page++;
         _hasMore = _items.length < _total;
-        _error = null;
         _loading = false;
+        _initialLoading = false;
+        _isRefreshing = false;
+        _error = null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Failed to load unpaid members';
         _loading = false;
+        _initialLoading = false;
+        _isRefreshing = false;
       });
     }
   }
 
   Future<void> _refresh() async {
+    if (_isRefreshing) return;
+
     setState(() {
-      _items = [];
+      _isRefreshing = true;
       _page = 1;
       _hasMore = true;
-      _total = 0;
+      // Do NOT clear _items — keep old data visible during refresh
     });
-    await _loadPage();
+
+    await _loadPage(initial: false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final centerBoxHeight = (screenHeight * 0.6).round();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -127,51 +157,57 @@ class _UnpaidMembersScreenState extends State<UnpaidMembersScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
-        child: _error != null
+        child: _items.isEmpty && _initialLoading
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  SizedBox(height: 60),
-                  Center(
-                    child: Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
+                  SizedBox(
+                    height: centerBoxHeight.toDouble(),
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: _refresh,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.darkTeal,
+                ],
+              )
+            : _items.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: centerBoxHeight.toDouble(),
+                    child: Center(
+                      child: Text(
+                        _error ?? 'No unpaid members',
+                        style: TextStyle(color: Colors.grey[700]),
                       ),
-                      child: const Text('Retry'),
                     ),
                   ),
                 ],
               )
             : ListView.separated(
                 controller: _sc,
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                itemCount: _items.length + (_hasMore ? 1 : 0),
+                itemCount: _items.length + (_hasMore && !_isRefreshing ? 1 : 0),
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   if (index >= _items.length) {
-                    // loading indicator at bottom
+                    // Bottom pagination loader
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.darkTeal,
-                          ),
-                        ),
+                        child: (_hasMore && !_isRefreshing)
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.darkTeal,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
                     );
                   }
+
                   final m = _items[index];
                   return Material(
                     borderRadius: BorderRadius.circular(10),
@@ -199,14 +235,13 @@ class _UnpaidMembersScreenState extends State<UnpaidMembersScreen> {
                       ),
                       subtitle: Text('${m.countryCode} ${m.phoneNumber}'),
                       trailing: SizedBox(
-                        width: 120, // tune this to fit your content
+                        width: 120,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Row(
-                              mainAxisSize: MainAxisSize
-                                  .min, // important so Row doesn't expand
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(
                                   Icons.currency_rupee,
@@ -215,7 +250,6 @@ class _UnpaidMembersScreenState extends State<UnpaidMembersScreen> {
                                 ),
                                 const SizedBox(width: 2),
                                 Flexible(
-                                  // ensures long numbers don't overflow
                                   child: Text(
                                     '${m.totalPendingAmount} /-',
                                     overflow: TextOverflow.ellipsis,

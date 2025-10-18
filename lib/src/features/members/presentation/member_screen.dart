@@ -20,7 +20,11 @@ class _MembersScreenState extends State<MembersScreen> {
 
   List<Member> _members = [];
   int _total = 0;
-  bool _isLoading = false;
+
+  // loading states
+  bool _isLoading = false; // used for initial load / infinite scroll
+  bool _isRefreshing = false; // used only for pull-to-refresh
+
   bool _hasMore = true;
   int _page = 1;
   final int _limit = 20;
@@ -41,7 +45,8 @@ class _MembersScreenState extends State<MembersScreen> {
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent - 100 &&
           !_isLoading &&
-          _hasMore) {
+          _hasMore &&
+          !_isRefreshing) {
         _loadMembers();
       }
     });
@@ -60,9 +65,43 @@ class _MembersScreenState extends State<MembersScreen> {
     });
   }
 
+  /// Pull-to-refresh handler: reset pagination and reload members
+  Future<void> _refreshMembers() async {
+    if (_isRefreshing) return;
+
+    setState(() {
+      _isRefreshing = true;
+      _page = 1;
+      _hasMore = true;
+      // Do not clear existing members — keep them visible while refreshing.
+      if (_members.isEmpty) {
+        // keep _isLoading for first-time empty state so center loader can show
+        _isLoading = true;
+      }
+    });
+
+    await _loadMembers();
+
+    if (mounted) {
+      setState(() {
+        _isRefreshing = false;
+        // Ensure manual loading off after refresh
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _loadMembers() async {
-    if (!_hasMore) return;
-    setState(() => _isLoading = true);
+    // If we've exhausted pages (and not a page=1 reload), bail out.
+    if (!_hasMore && _page != 1) return;
+
+    // Only show the manual center/infinite spinner when NOT refreshing.
+    if (!_isRefreshing && _members.isEmpty) {
+      setState(() => _isLoading = true);
+    } else if (!_isRefreshing && _members.isNotEmpty) {
+      // For infinite-scroll next pages show _isLoading true (used to display bottom loader)
+      setState(() => _isLoading = true);
+    }
 
     final requestId = ++_currentRequestId; // increment request id
 
@@ -73,14 +112,17 @@ class _MembersScreenState extends State<MembersScreen> {
         search: _search,
       );
 
+      // If this is an out-of-order response, ignore it.
+      if (requestId != _currentRequestId) return;
+
       final List<Member> fetched = result['members'] as List<Member>;
       final int total = result['total'] as int;
 
-      // Ignore if not latest request
-      if (requestId != _currentRequestId) return;
-
       setState(() {
+        // Update loading flags
         _isLoading = false;
+
+        // Replace list if page == 1 (either initial load or refresh)
         if (_page == 1) {
           _members = fetched;
           _total = total;
@@ -88,15 +130,24 @@ class _MembersScreenState extends State<MembersScreen> {
           _members.addAll(fetched);
           _total = total;
         }
+
         if (fetched.length < _limit) {
           _hasMore = false;
+        } else {
+          _hasMore = true;
         }
+
+        // increment page only after successful fetch
         _page++;
       });
     } catch (e) {
+      // If stale response, ignore
       if (requestId != _currentRequestId) return;
-      setState(() => _isLoading = false);
-      // Optionally show error UI
+
+      setState(() {
+        _isLoading = false;
+        // leave members as-is; could show snack or other UI if desired
+      });
     }
   }
 
@@ -111,6 +162,9 @@ class _MembersScreenState extends State<MembersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final centerBoxHeight = (screenHeight * 0.6).round();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -127,7 +181,7 @@ class _MembersScreenState extends State<MembersScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.darkTeal),
@@ -136,7 +190,7 @@ class _MembersScreenState extends State<MembersScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.group, color: AppColors.darkTeal, size: 18),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Text(
                     '$_total',
                     style: TextStyle(
@@ -153,6 +207,8 @@ class _MembersScreenState extends State<MembersScreen> {
       ),
 
       body: GestureDetector(
+        // make sure vertical drags reach the scrollable child
+        behavior: HitTestBehavior.translucent,
         onTap: () {
           if (_searchFocusNode.hasFocus) {
             _searchFocusNode.unfocus();
@@ -169,15 +225,15 @@ class _MembersScreenState extends State<MembersScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       vertical: 8,
                       horizontal: 12,
                     ),
                     labelText: 'Search',
-                    prefixIcon: Icon(Icons.search, size: 20),
+                    prefixIcon: const Icon(Icons.search, size: 20),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: Icon(Icons.clear),
+                            icon: const Icon(Icons.clear),
                             onPressed: () {
                               _searchController.clear();
                               _searchFocusNode.unfocus();
@@ -193,84 +249,138 @@ class _MembersScreenState extends State<MembersScreen> {
                         : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(),
+                      borderSide: const BorderSide(),
                     ),
                   ),
-                  style: TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ),
             ),
             Expanded(
-              child: _members.isEmpty && _isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: EdgeInsets.only(
-                        bottom: 80,
-                      ), // Adjust height as needed (e.g., FAB height + extra space)
-                      itemCount: _members.length + (_hasMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index >= _members.length) {
-                          return Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-                        final member = _members[index];
-                        final fullName =
-                            '${member.firstName} ${member.lastName ?? ''}'
-                                .trim();
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: AppColors.caribbeanGreen.withAlpha(
-                              (0.12 * 255).round(),
-                            ),
-                            child: Text(
-                              fullName.isNotEmpty
-                                  ? fullName[0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(color: AppColors.caribbeanGreen),
+              // Wrap only the scrollable list with RefreshIndicator so pull-to-refresh works
+              child: RefreshIndicator(
+                onRefresh: _refreshMembers,
+                child: _members.isEmpty && _isLoading && !_isRefreshing
+                    // Use a ListView so RefreshIndicator works when empty and to center the spinner.
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: centerBoxHeight.toDouble(),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
                             ),
                           ),
-                          title: Text(
-                            fullName,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                        ],
+                      )
+                    : _members.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: centerBoxHeight.toDouble(),
+                            child: Center(
+                              child: Text(
+                                'No members found',
+                                style: TextStyle(color: Colors.grey[700]),
+                              ),
+                            ),
                           ),
-                          subtitle: Text(
-                            '${member.countryCode} ${member.phoneNumber}',
-                          ),
-                          trailing: IconButton(
-                            icon: Icon(Icons.phone, color: Colors.green),
-                            onPressed: () async {
-                              final uri = Uri(
-                                scheme: 'tel',
-                                path: member.phoneNumber,
-                              );
-
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri);
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Cannot launch phone dialer'),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => MemberPaymentsScreen(
-                                  memberId: member.id,
-                                  memberName: member.displayName,
-                                ),
+                        ],
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(
+                          bottom: 80,
+                        ), // Adjust height as needed (e.g., FAB height + extra space)
+                        itemCount:
+                            _members.length +
+                            ((_hasMore && !_isRefreshing) ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index >= _members.length) {
+                            // show bottom loading indicator only when more items are expected and not refreshing
+                            return Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Center(
+                                child: (_hasMore && !_isRefreshing)
+                                    ? const CircularProgressIndicator()
+                                    : const SizedBox.shrink(),
                               ),
                             );
-                          },
-                        );
-                      },
-                    ),
+                          }
+                          final member = _members[index];
+                          final fullName =
+                              '${member.firstName} ${member.lastName ?? ''}'
+                                  .trim();
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.caribbeanGreen
+                                  .withAlpha((0.12 * 255).round()),
+                              child: Text(
+                                fullName.isNotEmpty
+                                    ? fullName[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                  color: AppColors.caribbeanGreen,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              fullName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${member.countryCode} ${member.phoneNumber}',
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                Icons.phone,
+                                color: Colors.green,
+                              ),
+                              onPressed: () async {
+                                final uri = Uri(
+                                  scheme: 'tel',
+                                  path: member.phoneNumber,
+                                );
+
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Cannot launch phone dialer',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            onTap: () async {
+                              // If you want auto-refresh when returning from payments screen,
+                              // you can use the result pattern and trigger a refresh here.
+                              final result = await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => MemberPaymentsScreen(
+                                    memberId: member.id,
+                                    memberName: member.displayName,
+                                  ),
+                                ),
+                              );
+
+                              // Optionally refresh members when returning with a truthy result
+                              if (result == true) {
+                                // Use refresh to avoid overlapping spinners
+                                await _refreshMembers();
+                              }
+                            },
+                          );
+                        },
+                      ),
+              ),
             ),
           ],
         ),
@@ -281,7 +391,7 @@ class _MembersScreenState extends State<MembersScreen> {
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
+            shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
             ),
             builder: (context) => Padding(
@@ -302,7 +412,7 @@ class _MembersScreenState extends State<MembersScreen> {
           }
         },
         backgroundColor: AppColors.darkTeal,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }

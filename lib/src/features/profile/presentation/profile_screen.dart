@@ -14,29 +14,30 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileService _service = ProfileService();
-  Map<String, dynamic>? _profile; // normalized profile map for UI
-  bool _loading = false;
+  Map<String, dynamic>? _profile;
+  bool _initialLoading = false; // only for first load
+  bool _refreshing = false; // tracks pull-to-refresh
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadProfile(initial: true);
   }
 
-  /// Loads profile and normalizes result into a Map<String, dynamic>
-  Future<void> _loadProfile() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _loadProfile({bool initial = false}) async {
+    if (initial) {
+      setState(() => _initialLoading = true);
+    } else {
+      setState(() => _refreshing = true);
+    }
+
+    _error = null;
 
     try {
       final result = await _service.fetchCurrentUser();
-
       Map<String, dynamic> profileMap;
 
-      // If the service returns a UserProfile instance -> convert to map
       if (result is UserProfile) {
         final up = result as UserProfile;
         profileMap = {
@@ -53,30 +54,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'updatedAt': up.updatedAt,
         };
       } else if (result is Map) {
-        // service returned raw response map - try to find data key
         final mapResult = Map<String, dynamic>.from(result);
         if (mapResult.containsKey('data') && mapResult['data'] is Map) {
           profileMap = Map<String, dynamic>.from(mapResult['data']);
         } else {
-          // maybe the service already returned the inner data
           profileMap = mapResult;
         }
       } else {
-        // Unexpected shape
         throw Exception(
           'Unexpected profile response type: ${result.runtimeType}',
         );
       }
 
-      setState(() {
-        _profile = profileMap;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _profile = profileMap;
+          _initialLoading = false;
+          _refreshing = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _initialLoading = false;
+          _refreshing = false;
+        });
+      }
     }
   }
 
@@ -127,14 +131,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /// Builds the body that will be placed inside a scrollable container.
-  /// This keeps the RefreshIndicator working even when content is short.
   Widget _buildProfileBody(BoxConstraints constraints) {
-    // local helper to safely read profile fields
     String str(Map<String, dynamic> m, String key, [String fallback = '']) {
       final v = m[key];
-      if (v == null) return fallback;
-      return v.toString();
+      return v?.toString() ?? fallback;
     }
 
     bool boolVal(Map<String, dynamic> m, String key, [bool fallback = false]) {
@@ -145,15 +145,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return s == 'true' || s == '1';
     }
 
-    // LOADING
-    if (_loading) {
+    if (_initialLoading && _profile == null) {
       return SizedBox(
         height: constraints.maxHeight,
         child: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    // ERROR
     if (_error != null) {
       return SizedBox(
         height: constraints.maxHeight,
@@ -175,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(_error!, textAlign: TextAlign.center),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: _loadProfile,
+                  onPressed: () => _loadProfile(initial: true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.darkTeal,
                   ),
@@ -188,15 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    // NO PROFILE
-    if (_profile == null) {
-      return SizedBox(
-        height: constraints.maxHeight,
-        child: const Center(child: Text('No profile data')),
-      );
-    }
-
-    // CONTENT
     final profile = _profile!;
     final firstName = str(profile, 'firstName');
     final lastName = str(profile, 'lastName');
@@ -209,19 +198,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final createdAt = str(profile, 'createdAt', '');
 
     String initial() {
-      if (firstName.trim().isNotEmpty) {
-        return firstName.trim()[0].toUpperCase();
-      }
-      if (lastName.trim().isNotEmpty) {
-        return lastName.trim()[0].toUpperCase();
-      }
+      if (firstName.trim().isNotEmpty) return firstName.trim()[0].toUpperCase();
+      if (lastName.trim().isNotEmpty) return lastName.trim()[0].toUpperCase();
       return '?';
     }
 
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
-        // Use min so content doesn't stretch if not needed
         mainAxisSize: MainAxisSize.min,
         children: [
           Card(
@@ -235,30 +219,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 84,
-                        height: 84,
-                        decoration: const BoxDecoration(shape: BoxShape.circle),
-                        child: avatarUrl.isNotEmpty
-                            ? CircleAvatar(
-                                radius: 42,
-                                backgroundImage: NetworkImage(avatarUrl),
-                                backgroundColor: Colors.transparent,
+                      CircleAvatar(
+                        radius: 42,
+                        backgroundImage: avatarUrl.isNotEmpty
+                            ? NetworkImage(avatarUrl)
+                            : null,
+                        backgroundColor: avatarUrl.isEmpty
+                            ? AppColors.darkTeal.withAlpha(30)
+                            : Colors.transparent,
+                        child: avatarUrl.isEmpty
+                            ? Text(
+                                initial(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               )
-                            : CircleAvatar(
-                                radius: 42,
-                                backgroundColor: AppColors.darkTeal.withAlpha(
-                                  (0.12 * 255).round(),
-                                ),
-                                child: Text(
-                                  initial(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
+                            : null,
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -312,6 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'Joined',
                     createdAt.isNotEmpty ? _formatDate(createdAt) : '-',
                   ),
+                  // No LinearProgressIndicator here anymore
                 ],
               ),
             ),
@@ -348,7 +327,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          // Add a little extra space at the bottom so pull-to-refresh is easy
           const SizedBox(height: 24),
         ],
       ),
@@ -372,8 +350,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         foregroundColor: AppColors.darkTeal,
       ),
       body: RefreshIndicator(
-        onRefresh: _loadProfile,
-        // Always provide a scrollable child so pull-to-refresh works in all states
+        onRefresh: () => _loadProfile(initial: false),
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(

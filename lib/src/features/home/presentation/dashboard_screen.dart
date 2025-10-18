@@ -16,62 +16,62 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final HomeService _service = HomeService();
 
-  bool _loading = true;
+  bool _initialLoading = true; // first time stats load
   String? _error;
   AnalyticsStats? _stats;
 
-  // For quick unpaid members preview (top 5)
-  bool _loadingPendingPreview = true;
+  bool _initialPendingPreviewLoading = true; // first time unpaid members load
   String? _pendingPreviewError;
   List<PendingMember> _pendingPreviewItems = [];
 
   @override
   void initState() {
     super.initState();
-    _loadStats();
-    _loadPendingPreview();
+    _loadStats(initial: true);
+    _loadPendingPreview(initial: true);
   }
 
-  Future<void> _loadStats() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _loadStats({bool initial = false}) async {
+    if (initial) setState(() => _initialLoading = true);
     try {
       final s = await _service.fetchStats();
-      setState(() {
-        _stats = s;
-        _loading = false;
-      });
+      if (mounted)
+        setState(() {
+          _stats = s;
+          _initialLoading = false;
+        });
     } catch (e) {
-      setState(() {
-        _error = 'Failed to load dashboard';
-        _loading = false;
-      });
+      if (mounted)
+        setState(() {
+          _error = 'Failed to load dashboard';
+          _initialLoading = false;
+        });
     }
   }
 
-  Future<void> _loadPendingPreview() async {
-    setState(() {
-      _loadingPendingPreview = true;
-      _pendingPreviewError = null;
-    });
+  Future<void> _loadPendingPreview({bool initial = false}) async {
+    if (initial) setState(() => _initialPendingPreviewLoading = true);
     try {
       final resp = await _service.fetchPendingMembers(page: 1, limit: 5);
-      setState(() {
-        _pendingPreviewItems = resp.data;
-        _loadingPendingPreview = false;
-      });
+      if (mounted)
+        setState(() {
+          _pendingPreviewItems = resp.data;
+          _initialPendingPreviewLoading = false;
+        });
     } catch (e) {
-      setState(() {
-        _pendingPreviewError = 'Failed to load unpaid members';
-        _loadingPendingPreview = false;
-      });
+      if (mounted)
+        setState(() {
+          _pendingPreviewError = 'Failed to load unpaid members';
+          _initialPendingPreviewLoading = false;
+        });
     }
   }
 
   Future<void> _refreshAll() async {
-    await Future.wait([_loadStats(), _loadPendingPreview()]);
+    await Future.wait([
+      _loadStats(initial: false),
+      _loadPendingPreview(initial: false),
+    ]);
   }
 
   @override
@@ -101,7 +101,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildBody() {
-    if (_loading && _stats == null) {
+    // Only show center loader on initial load
+    if (_initialLoading && _stats == null) {
       return SizedBox(
         height: MediaQuery.of(context).size.height - 120,
         child: const Center(child: CircularProgressIndicator()),
@@ -118,7 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(_error!, style: const TextStyle(color: Colors.red)),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: _loadStats,
+                onPressed: () => _loadStats(initial: true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.darkTeal,
                 ),
@@ -145,7 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(height: 10),
 
-        // Stats rows (same compact cards)
+        // Stats cards
         Column(
           children: [
             Row(
@@ -156,7 +157,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     value: stats.committees.toString(),
                     icon: Icons.group_work,
                     color: AppColors.vividBlue,
-                    onTap: () {},
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -166,7 +166,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     value: stats.members.toString(),
                     icon: Icons.people_alt,
                     color: AppColors.darkTeal,
-                    onTap: () {},
                   ),
                 ),
               ],
@@ -177,7 +176,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               value: stats.pendingMembers.toString(),
               icon: Icons.hourglass_top,
               color: Colors.orange.shade700,
-              onTap: () {},
             ),
           ],
         ),
@@ -185,7 +183,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 18),
         Divider(color: Colors.grey.shade300, thickness: 1),
 
-        // Unpaid members heading with See All
+        // Unpaid members heading
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -220,8 +218,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(height: 10),
 
-        // Replace buttons with a compact list (limit 5 preview)
-        if (_loadingPendingPreview)
+        // Unpaid members list
+        if (_initialPendingPreviewLoading && _pendingPreviewItems.isEmpty)
           const SizedBox(
             height: 60,
             child: Center(child: CircularProgressIndicator()),
@@ -235,7 +233,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 8),
               ElevatedButton(
-                onPressed: _loadPendingPreview,
+                onPressed: () => _loadPendingPreview(initial: true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.darkTeal,
                 ),
@@ -253,96 +251,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
           )
         else
           Column(
-            children: _pendingPreviewItems.map((m) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Material(
-                  borderRadius: BorderRadius.circular(10),
-                  elevation: 1,
-                  color: Colors.white,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor: AppColors.vividBlue.withAlpha(
-                        (0.12 * 255).round(),
-                      ),
-                      child: Text(
-                        m.firstName.isNotEmpty
-                            ? m.firstName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(color: AppColors.vividBlue),
-                      ),
-                    ),
-                    title: Text(
-                      m.displayName,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    subtitle: Text('${m.countryCode} ${m.phoneNumber}'),
-                    trailing: SizedBox(
-                      width: 120, // tune this to fit your content
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize
-                                .min, // important so Row doesn't expand
-                            children: [
-                              const Icon(
-                                Icons.currency_rupee,
-                                size: 16,
-                                color: AppColors.lightRed,
-                              ),
-                              const SizedBox(width: 2),
-                              Flexible(
-                                // ensures long numbers don't overflow
-                                child: Text(
-                                  '${m.totalPendingAmount} /-',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14,
-                                    color: AppColors.lightRed,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${m.pendingCount} pending',
-                            textAlign: TextAlign.right,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => MemberPaymentsScreen(
-                            memberId: m.id,
-                            memberName: m.displayName,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-            }).toList(),
+            children: _pendingPreviewItems
+                .map((m) => _buildPendingMemberTile(m))
+                .toList(),
           ),
 
         const SizedBox(height: 18),
       ],
+    );
+  }
+
+  Widget _buildPendingMemberTile(PendingMember m) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        borderRadius: BorderRadius.circular(10),
+        elevation: 1,
+        color: Colors.white,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+          leading: CircleAvatar(
+            backgroundColor: AppColors.vividBlue.withAlpha(
+              (0.12 * 255).round(),
+            ),
+            child: Text(
+              m.firstName.isNotEmpty ? m.firstName[0].toUpperCase() : '?',
+              style: TextStyle(color: AppColors.vividBlue),
+            ),
+          ),
+          title: Text(
+            m.displayName,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          subtitle: Text('${m.countryCode} ${m.phoneNumber}'),
+          trailing: SizedBox(
+            width: 120,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.currency_rupee,
+                      size: 16,
+                      color: AppColors.lightRed,
+                    ),
+                    const SizedBox(width: 2),
+                    Flexible(
+                      child: Text(
+                        '${m.totalPendingAmount} /-',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: AppColors.lightRed,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${m.pendingCount} pending',
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => MemberPaymentsScreen(
+                  memberId: m.id,
+                  memberName: m.displayName,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

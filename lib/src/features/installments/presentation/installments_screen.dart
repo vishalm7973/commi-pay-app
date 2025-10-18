@@ -1,3 +1,4 @@
+import 'package:commipay_app/src/features/installment_payments/presentation/installment_payments_screen.dart';
 import 'package:commipay_app/src/features/installments/data/installment_model.dart';
 import 'package:commipay_app/src/features/installments/data/installment_service.dart';
 import 'package:commipay_app/src/features/installments/presentation/add_installment_sheet.dart';
@@ -112,7 +113,7 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
     final Color dotColor = settled ? Colors.green : Colors.red;
 
     // descending numbering (newest = _total, older decreasing)
-    int _computeDisplayNumber() {
+    int computeDisplayNumber() {
       if (_total > 0) {
         final absoluteIndex = (_currentPage - 1) * _limit + index; // 0-based
         final num = _total - absoluteIndex;
@@ -124,10 +125,18 @@ class _CommitteeInstallmentsPageState extends State<CommitteeInstallmentsPage> {
       return num > 0 ? num : (index + 1);
     }
 
-    final displayNumber = _computeDisplayNumber();
+    final displayNumber = computeDisplayNumber();
 
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                InstallmentPaymentsPage(installmentId: installment.id),
+          ),
+        );
+      },
+
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         child: Row(

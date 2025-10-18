@@ -1,5 +1,5 @@
 import 'package:commipay_app/src/features/installments/data/installment_service.dart';
-import 'package:commipay_app/src/features/share/share_installments.dart';
+import 'package:commipay_app/src/features/share/share_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:commipay_app/src/features/home/data/pending_payment_records_model.dart';
 import 'package:commipay_app/src/features/home/data/home_service.dart';
@@ -52,9 +52,11 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
       } catch (_) {
         totalPending = resp.groups.fold<int>(
           0,
-          (sum, g) => sum + (g.totalPendingAmount),
+          (sum, g) => sum + g.totalPendingAmount,
         );
       }
+
+      if (!mounted) return;
 
       setState(() {
         _groups = resp.groups;
@@ -66,6 +68,7 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
         _isPaid = List<bool>.filled(_groups.length, false);
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Failed to load payment records';
         _loading = false;
@@ -77,7 +80,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
     if (_isProcessing[index] || _isPaid[index]) return;
 
     setState(() => _isProcessing[index] = true);
-
     final g = _groups[index];
 
     try {
@@ -146,8 +148,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showInitialLoader = _loading && _groups.isEmpty;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -164,19 +164,26 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
           const SizedBox(width: 12),
           IconButton(
             icon: const Icon(Icons.share, color: Colors.teal),
-            onPressed: () => ShareInstallments.share(context, _groups),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (_) => SharePreviewDialog(
+                  memberName: widget.memberName,
+                  groups: _groups,
+                ),
+              );
+            },
           ),
           const SizedBox(width: 12),
         ],
       ),
       body: RefreshIndicator(
+        color: AppColors.darkTeal,
         onRefresh: _loadRecords,
-        child: showInitialLoader
-            ? ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  Center(child: CircularProgressIndicator()),
-                ],
+        child: _loading && _groups.isEmpty
+            ? SizedBox(
+                height: MediaQuery.of(context).size.height - 120,
+                child: const Center(child: CircularProgressIndicator()),
               )
             : _error != null && _groups.isEmpty
             ? ListView(
@@ -202,13 +209,10 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
               )
             : Column(
                 children: [
-                  // Fixed Overview Section
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: _buildTotalsHeader(),
                   ),
-
-                  // Scrollable List of payments
                   Expanded(
                     child: _groups.isEmpty
                         ? Center(
@@ -219,13 +223,10 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
                           )
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount:
-                                _groups.length + 1, // extra space at bottom
+                            itemCount: _groups.length + 1,
                             itemBuilder: (context, index) {
                               if (index == _groups.length) {
-                                return const SizedBox(
-                                  height: 80,
-                                ); // bottom spacing
+                                return const SizedBox(height: 80);
                               }
                               final g = _groups[index];
                               return Padding(
@@ -308,7 +309,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // top row
             Row(
               children: [
                 CircleAvatar(
@@ -383,13 +383,12 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
               ],
             ),
             const Divider(height: 18),
-            // Installment info
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Installment:',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -432,7 +431,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            // Pay button
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -478,7 +476,6 @@ class _MemberPaymentsScreenState extends State<MemberPaymentsScreen> {
   }
 }
 
-/// Small stat card used in header row
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
@@ -506,7 +503,6 @@ class _StatCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
-            mainAxisSize: MainAxisSize.max,
             children: [
               Container(
                 width: 44,
